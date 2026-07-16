@@ -1,0 +1,338 @@
+// This is the Prisma schema for DevOS
+// Docs: https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── User & Auth ───────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  avatarUrl String?
+  timezone  String   @default("Asia/Jakarta")
+  emailVerified Boolean @default(false)
+
+  // Relations
+  sessions     Session[]
+  accounts     Account[]
+  settings     UserSettings?
+  widgets      Widget[]
+  auditLogs    AuditLog[]
+  todos        Todo[]
+  snippets     Snippet[]
+  bookmarks    Bookmark[]
+  notes        Note[]
+  projects     Project[]
+  integrations Integration[]
+  secrets      Secret[]
+  aiPrompts    AiPrompt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Better Auth session model
+model Session {
+  id        String   @id
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([token])
+}
+
+// Better Auth account model (OAuth)
+model Account {
+  id                    String  @id
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+// Better Auth verification model
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+
+model UserSettings {
+  id         String @id @default(cuid())
+  theme      String @default("dark")  // 'dark' | 'light' | 'system'
+  density    String @default("normal") // 'compact' | 'normal' | 'spacious'
+  accentColor String @default("violet")
+  sidebarOpen Boolean @default(true)
+
+  userId     String @unique
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  updatedAt  DateTime @updatedAt
+}
+
+model Widget {
+  id       String     @id @default(cuid())
+  type     String     // 'tasks' | 'github' | 'pomodoro' | etc.
+  enabled  Boolean    @default(true)
+  position Int
+  size     WidgetSize @default(MEDIUM)
+  config   Json?      // JSONB — widget-specific settings
+
+  userId   String
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, type])
+  @@index([userId, enabled])
+}
+
+enum WidgetSize {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+// ── Workspace ─────────────────────────────────────────────────────────────────
+
+model Todo {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  priority    Priority  @default(MEDIUM)
+  completed   Boolean   @default(false)
+  dueDate     DateTime?
+  tags        String[]
+  deletedAt   DateTime?
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([userId, completed])
+  @@index([userId, deletedAt])
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Bookmark {
+  id          String   @id @default(cuid())
+  title       String
+  url         String
+  description String?
+  favicon     String?
+  tags        String[]
+  pinned      Boolean  @default(false)
+  deletedAt   DateTime?
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Note {
+  id        String    @id @default(cuid())
+  title     String
+  content   String    // Markdown
+  tags      String[]
+  pinned    Boolean   @default(false)
+  deletedAt DateTime?
+
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([userId, deletedAt])
+}
+
+// ── Knowledge ─────────────────────────────────────────────────────────────────
+
+model Snippet {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  content     String
+  language    String    // 'typescript' | 'python' | 'bash' | etc.
+  tags        String[]
+  pinned      Boolean   @default(false)
+  deletedAt   DateTime?
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([userId, language])
+}
+
+// ── Projects ──────────────────────────────────────────────────────────────────
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  repoUrl     String?
+  deployUrl   String?
+  color       String?       // for visual differentiation
+  tags        String[]
+  techStack   String[]
+  deletedAt   DateTime?
+
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([userId, status])
+}
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+// ── Security ──────────────────────────────────────────────────────────────────
+
+model Secret {
+  id          String    @id @default(cuid())
+  name        String
+  key         String
+  value       String    // AES-256-GCM encrypted at app layer before storing
+  category    String?   // 'api-key' | 'oauth' | 'database' | 'ssh' | etc.
+  description String?
+  deletedAt   DateTime?
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, key])
+  @@index([userId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String   // 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT'
+  resource   String   // 'todo' | 'secret' | 'snippet' | etc.
+  resourceId String?
+  metadata   Json?    // JSONB — old/new values, context
+  ipAddress  String?
+  userAgent  String?
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+  // AuditLog is APPEND-ONLY — never updated or soft-deleted
+
+  @@index([userId])
+  @@index([userId, action])
+  @@index([userId, resource])
+  @@index([createdAt])
+}
+
+// ── Integrations ──────────────────────────────────────────────────────────────
+
+model Integration {
+  id           String    @id @default(cuid())
+  provider     String    // 'github' | 'vercel' | 'cloudflare' | 'supabase' | etc.
+  accessToken  String?   // encrypted
+  refreshToken String?   // encrypted
+  expiresAt    DateTime?
+  metadata     Json?     // provider-specific data (username, org, etc.)
+  enabled      Boolean   @default(true)
+
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([userId, provider])
+  @@index([userId])
+}
+
+// ── AI ────────────────────────────────────────────────────────────────────────
+
+model AiPrompt {
+  id         String    @id @default(cuid())
+  title      String
+  content    String
+  category   String?   // 'coding' | 'review' | 'explain' | 'refactor' | etc.
+  tags       String[]
+  variables  Json?     // [{ name: string, description: string }]
+  pinned     Boolean   @default(false)
+  usageCount Int       @default(0)
+  deletedAt  DateTime?
+
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([userId, category])
+}

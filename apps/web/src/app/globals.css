@@ -1,0 +1,173 @@
+@import "tailwindcss";
+
+/* ── Design System Tokens ─────────────────────────────────────────────────── */
+:root {
+  /* Fonts */
+  --font-sans: var(--font-geist-sans, system-ui, sans-serif);
+  --font-mono: var(--font-geist-mono, monospace);
+
+  /* Background */
+  --color-bg:           hsl(0, 0%, 6%);
+  --color-bg-subtle:    hsl(0, 0%, 8%);
+  --color-surface:      hsl(0, 0%, 9%);
+  --color-surface-2:    hsl(0, 0%, 11%);
+  --color-surface-3:    hsl(0, 0%, 14%);
+
+  /* Border */
+  --color-border:        hsl(0, 0%, 14%);
+  --color-border-subtle: hsl(0, 0%, 11%);
+  --color-border-strong: hsl(0, 0%, 20%);
+
+  /* Text */
+  --color-text:          hsl(0, 0%, 97%);
+  --color-text-2:        hsl(0, 0%, 70%);
+  --color-text-muted:    hsl(0, 0%, 45%);
+  --color-text-disabled: hsl(0, 0%, 30%);
+
+  /* Accent — Violet */
+  --color-accent:        hsl(262, 83%, 68%);
+  --color-accent-hover:  hsl(262, 83%, 60%);
+  --color-accent-muted:  hsl(262 83% 68% / 0.15);
+  --color-accent-border: hsl(262 83% 68% / 0.30);
+  --color-accent-text:   hsl(262, 100%, 85%);
+
+  /* Semantic */
+  --color-success:       hsl(142, 71%, 45%);
+  --color-success-muted: hsl(142 71% 45% / 0.15);
+  --color-warning:       hsl(38, 92%, 50%);
+  --color-warning-muted: hsl(38 92% 50% / 0.15);
+  --color-danger:        hsl(0, 84%, 60%);
+  --color-danger-muted:  hsl(0 84% 60% / 0.15);
+  --color-info:          hsl(217, 91%, 60%);
+  --color-info-muted:    hsl(217 91% 60% / 0.15);
+
+  /* UI */
+  --color-focus-ring:    hsl(262 83% 68% / 0.5);
+  --color-overlay:       hsl(0 0% 0% / 0.6);
+  --color-selection:     hsl(262 83% 68% / 0.25);
+
+  /* Spacing */
+  --spacing-widget-pad:  16px;
+  --spacing-section-gap: 24px;
+  --spacing-page-pad:    24px;
+
+  /* Radius */
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   8px;
+  --radius-xl:   12px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm:     0 1px 2px hsl(0 0% 0% / 0.4);
+  --shadow-md:     0 4px 8px hsl(0 0% 0% / 0.4), 0 1px 2px hsl(0 0% 0% / 0.3);
+  --shadow-lg:     0 8px 24px hsl(0 0% 0% / 0.5), 0 2px 4px hsl(0 0% 0% / 0.3);
+  --shadow-xl:     0 16px 40px hsl(0 0% 0% / 0.6), 0 4px 8px hsl(0 0% 0% / 0.3);
+  --shadow-accent: 0 0 20px hsl(262 83% 68% / 0.25);
+
+  /* Transitions */
+  --duration-fast:   150ms;
+  --duration-normal: 200ms;
+  --duration-slow:   300ms;
+  --ease-default:    cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out:        cubic-bezier(0, 0, 0.2, 1);
+  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Layout */
+  --sidebar-width:           240px;
+  --sidebar-collapsed-width: 56px;
+  --topbar-height:           48px;
+  --widget-gap:              12px;
+
+  /* Z-index */
+  --z-dropdown: 100;
+  --z-sticky:   200;
+  --z-overlay:  300;
+  --z-modal:    400;
+  --z-toast:    500;
+  --z-tooltip:  600;
+  --z-command:  700;
+}
+
+/* ── Light Theme ──────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --color-bg:            hsl(0, 0%, 98%);
+  --color-bg-subtle:     hsl(0, 0%, 96%);
+  --color-surface:       hsl(0, 0%, 100%);
+  --color-surface-2:     hsl(0, 0%, 97%);
+  --color-surface-3:     hsl(0, 0%, 94%);
+  --color-border:        hsl(0, 0%, 88%);
+  --color-border-subtle: hsl(0, 0%, 92%);
+  --color-border-strong: hsl(0, 0%, 78%);
+  --color-text:          hsl(0, 0%, 9%);
+  --color-text-2:        hsl(0, 0%, 32%);
+  --color-text-muted:    hsl(0, 0%, 55%);
+  --color-text-disabled: hsl(0, 0%, 70%);
+  --color-accent:        hsl(262, 83%, 58%);
+  --color-accent-hover:  hsl(262, 83%, 50%);
+  --color-accent-text:   hsl(262, 83%, 40%);
+}
+
+/* ── Base Styles ──────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── Selection ────────────────────────────────────────────────────────────── */
+::selection {
+  background: var(--color-selection);
+}
+
+/* ── Focus Ring ───────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-disabled);
+}
+
+/* ── Reduced Motion ───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
