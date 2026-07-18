@@ -47,7 +47,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     // Prisma known errors
     else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
-      switch (exception.code) {
+      const prismaError = exception as Prisma.PrismaClientKnownRequestError
+      switch (prismaError.code) {
         case 'P2002':
           status = HttpStatus.CONFLICT
           code = 'DUPLICATE_ENTRY'

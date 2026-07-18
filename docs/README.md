@@ -1,3 +1,5 @@
+ld okokoateiokay va
+
 # DevOS Documentation
 
 > **A personal command center for software engineers.**
@@ -62,34 +64,34 @@ docs/
 
 ## Current Status
 
-| Phase | Document | Status |
-|-------|----------|--------|
-| Phase 0 | Vision | ✅ Done |
-| Phase 0 | Mission | ✅ Done |
-| Phase 0 | Principles | ✅ Done |
-| Phase 0 | Goals | ✅ Done |
-| Phase 0 | Non-Goals | ✅ Done |
-| Phase 0 | Information Architecture | ✅ Done |
-| Phase 0 | Module Breakdown | ✅ Done |
-| Phase 0 | Frontend Architecture | ✅ Done |
-| Phase 0 | Engineering Standards | ✅ Done |
-| Phase 0 | AI Agent Specs | ✅ Done |
-| Phase 0 | AI Agent Skills (Antigravity) | ✅ Done |
-| Phase 0 | Backend Architecture | 🔲 Not started |
-| Phase 0 | Design System | 🔲 Not started |
-| Phase 1 | Repository Setup | 🔲 Not started |
-| Phase 1 | Development | 🔲 Not started |
+| Phase   | Document                      | Status         |
+| ------- | ----------------------------- | -------------- |
+| Phase 0 | Vision                        | ✅ Done        |
+| Phase 0 | Mission                       | ✅ Done        |
+| Phase 0 | Principles                    | ✅ Done        |
+| Phase 0 | Goals                         | ✅ Done        |
+| Phase 0 | Non-Goals                     | ✅ Done        |
+| Phase 0 | Information Architecture      | ✅ Done        |
+| Phase 0 | Module Breakdown              | ✅ Done        |
+| Phase 0 | Frontend Architecture         | ✅ Done        |
+| Phase 0 | Engineering Standards         | ✅ Done        |
+| Phase 0 | AI Agent Specs                | ✅ Done        |
+| Phase 0 | AI Agent Skills (Antigravity) | ✅ Done        |
+| Phase 0 | Backend Architecture          | 🔲 Not started |
+| Phase 0 | Design System                 | 🔲 Not started |
+| Phase 1 | Repository Setup              | 🔲 Not started |
+| Phase 1 | Development                   | 🔲 Not started |
 
 ---
 
 ## Relationship with TRASON
 
-| Dimension | TRASON | DevOS |
-|-----------|--------|-------|
-| Type | SaaS Product | Personal Operating System |
-| Audience | Public users | Rizky (developer) |
-| Core | Career management | Developer workspace |
-| Scope | Job search, ATS, resume | Code, infra, knowledge, AI |
+| Dimension | TRASON                  | DevOS                      |
+| --------- | ----------------------- | -------------------------- |
+| Type      | SaaS Product            | Personal Operating System  |
+| Audience  | Public users            | Rizky (developer)          |
+| Core      | Career management       | Developer workspace        |
+| Scope     | Job search, ATS, resume | Code, infra, knowledge, AI |
 
 These projects are complementary. They do not compete.
 
