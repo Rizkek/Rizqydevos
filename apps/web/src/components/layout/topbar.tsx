@@ -4,6 +4,7 @@ import * as React from 'react'
 import { usePathname } from 'next/navigation'
 import { Bell, Search, User, LogOut } from 'lucide-react'
 import { useSession, signOut } from '@/lib/auth-client'
+import { useCommandStore } from '@/stores/command.store'
 
 export function Topbar() {
   const pathname = usePathname()
@@ -30,14 +31,17 @@ export function Topbar() {
       {/* ── Actions ── */}
       <div className="flex items-center gap-3">
         {/* Command Palette Trigger */}
-        <button className="flex items-center h-8 px-3 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] hover:border-[var(--color-border-strong)] transition-colors text-[13px] text-[var(--color-text-muted)] group w-56 justify-between">
+        <button 
+          onClick={() => useCommandStore.getState().setIsOpen(true)}
+          className="flex items-center h-8 px-3 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] hover:border-[var(--color-border-strong)] transition-colors text-[13px] text-[var(--color-text-muted)] group w-56 justify-between"
+        >
           <div className="flex items-center gap-2">
             <Search size={14} className="text-[var(--color-text-2)]" />
             <span>Search...</span>
           </div>
           <kbd className="font-mono text-[11px] font-medium text-[var(--color-text-2)] bg-[var(--color-surface-3)] border border-[var(--color-border)] rounded-[4px] px-1.5 h-[20px] flex items-center tracking-normal">
             ⌘K
-          </kbd>%
+          </kbd>
         </button>
 
         {/* Notifications */}

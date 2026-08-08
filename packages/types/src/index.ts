@@ -62,8 +62,118 @@ export interface Todo {
   completed: boolean
   dueDate?: string
   tags: string[]
+  userId: string
   createdAt: string
   updatedAt: string
+}
+
+export interface CreateTodoInput {
+  title: string
+  description?: string
+  priority?: Priority
+  dueDate?: string
+  tags?: string[]
+}
+
+export interface UpdateTodoInput extends Partial<CreateTodoInput> {
+  completed?: boolean
+}
+
+export interface Note {
+  id: string
+  title: string
+  content: string
+  tags: string[]
+  pinned: boolean
+  userId: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateNoteInput {
+  title: string
+  content: string
+  tags?: string[]
+  pinned?: boolean
+}
+
+export interface UpdateNoteInput extends Partial<CreateNoteInput> {}
+
+// ── Knowledge ─────────────────────────────────────────
+
+export interface Snippet {
+  id: string
+  title: string
+  description?: string
+  content: string
+  language: string
+  tags: string[]
+  pinned: boolean
+  userId: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateSnippetInput {
+  title: string
+  description?: string
+  content: string
+  language: string
+  tags?: string[]
+  pinned?: boolean
+}
+
+export interface UpdateSnippetInput extends Partial<CreateSnippetInput> {}
+
+// ── Projects ──────────────────────────────────────────
+
+export type ProjectStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED'
+
+export interface Project {
+  id: string
+  name: string
+  description?: string
+  status: ProjectStatus
+  repoUrl?: string
+  deployUrl?: string
+  color?: string
+  tags: string[]
+  techStack: string[]
+  userId: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateProjectInput {
+  name: string
+  description?: string
+  status?: ProjectStatus
+  repoUrl?: string
+  deployUrl?: string
+  color?: string
+  tags?: string[]
+  techStack?: string[]
+}
+
+export interface UpdateProjectInput extends Partial<CreateProjectInput> {}
+
+// ── Settings & UI ──────────────────────────────────────
+
+export interface UserSettings {
+  id: string
+  theme: string
+  density: string
+  accentColor: string
+  sidebarOpen: boolean
+  userId: string
+  updatedAt: string
+}
+
+export interface UpdateSettingsInput {
+  theme?: string
+  density?: string
+  accentColor?: string
+  sidebarOpen?: boolean
 }
 
 // ── Dashboard ─────────────────────────────────────────
