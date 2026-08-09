@@ -35,7 +35,7 @@ export class SnippetService {
     return this.prisma.snippet.create({
       data: {
         title: dto.title,
-        description: dto.description,
+        description: dto.description ?? null,
         content: dto.content,
         language: dto.language,
         tags: dto.tags ?? [],

@@ -51,9 +51,9 @@ export class TodoService {
     return this.prisma.todo.create({
       data: {
         title: dto.title,
-        description: dto.description,
-        priority: dto.priority,
-        dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.priority !== undefined && { priority: dto.priority }),
+        ...(dto.dueDate !== undefined && { dueDate: new Date(dto.dueDate) }),
         tags: dto.tags ?? [],
         userId,
       },

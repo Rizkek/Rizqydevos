@@ -26,8 +26,8 @@ export class SnippetController {
     @Query('pinned') pinned?: string,
   ) {
     return this.snippetService.findAll(DEV_USER_ID, {
-      language,
-      pinned: pinned !== undefined ? pinned === 'true' : undefined,
+      ...(language !== undefined && { language }),
+      ...(pinned !== undefined && { pinned: pinned === 'true' }),
     })
   }
 
