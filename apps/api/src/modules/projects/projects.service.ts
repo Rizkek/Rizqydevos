@@ -35,11 +35,11 @@ export class ProjectsService {
     return this.prisma.project.create({
       data: {
         name: dto.name,
-        description: dto.description,
+        description: dto.description ?? null,
         status: dto.status ?? ProjectStatus.ACTIVE,
-        repoUrl: dto.repoUrl,
-        deployUrl: dto.deployUrl,
-        color: dto.color,
+        repoUrl: dto.repoUrl ?? null,
+        deployUrl: dto.deployUrl ?? null,
+        color: dto.color ?? null,
         tags: dto.tags ?? [],
         techStack: dto.techStack ?? [],
         userId,

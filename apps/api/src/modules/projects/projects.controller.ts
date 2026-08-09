@@ -23,7 +23,9 @@ export class ProjectsController {
 
   @Get()
   findAll(@Query('status') status?: ProjectStatus) {
-    return this.projectsService.findAll(DEV_USER_ID, { status })
+    return this.projectsService.findAll(DEV_USER_ID, {
+      ...(status !== undefined && { status }),
+    })
   }
 
   @Get(':id')

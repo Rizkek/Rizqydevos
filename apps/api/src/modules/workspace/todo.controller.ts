@@ -29,8 +29,8 @@ export class TodoController {
     @Query('priority') priority?: string,
   ) {
     const filters = {
-      completed: completed !== undefined ? completed === 'true' : undefined,
-      priority,
+      ...(completed !== undefined && { completed: completed === 'true' }),
+      ...(priority !== undefined && { priority }),
     }
     return this.todoService.findAll(DEV_USER_ID, filters)
   }
