@@ -2,17 +2,23 @@
 
 import * as React from 'react'
 import { WidgetCard } from '../widget-card'
-import { GitPullRequest, GitCommit, ExternalLink } from 'lucide-react'
+import { GitPullRequest, GitCommit, ExternalLink, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { WidgetConfig } from '@/stores/widget.store'
+import { useQuery } from '@tanstack/react-query'
 
-const events = [
-  { id: '1', type: 'commit', repo: 'rizkek/devos', message: 'feat: command palette', time: '2h ago' },
-  { id: '2', type: 'pr', repo: 'rizkek/devos', message: 'Phase 1 MVP', time: '5h ago' },
-  { id: '3', type: 'commit', repo: 'rizkek/devos', message: 'fix: layout typo', time: '6h ago' },
-  { id: '4', type: 'commit', repo: 'rizkek/trason', message: 'update docs', time: '1d ago' },
-]
+export function GithubWidget({ config }: { config: WidgetConfig }) {
+  const { data: events, isLoading, error } = useQuery({
+    queryKey: ['github-activity'],
+    queryFn: async () => {
+      const res = await fetch('http://localhost:3001/api/v1/integrations/github/activity', {
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!res.ok) throw new Error('Integration not configured')
+      return res.json()
+    }
+  })
 
-export function GithubWidget() {
   return (
     <WidgetCard
       id="w-github"
@@ -33,17 +39,31 @@ export function GithubWidget() {
           ))}
         </div>
         
-        <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-1">
-          {events.map(ev => (
-            <div key={ev.id} className="flex items-start gap-3 p-2 rounded-md hover:bg-[var(--color-surface-2)] transition-colors cursor-pointer">
-              <div className="mt-0.5 text-[var(--color-text-muted)]">
-                {ev.type === 'commit' ? <GitCommit size={14} /> : <GitPullRequest size={14} className="text-[var(--color-info)]" />}
+        <div className="flex-1 overflow-y-auto p-3 space-y-3">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-2)] gap-2 text-[12px]">
+              <Loader2 size={14} className="animate-spin" /> Fetching...
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)] gap-2 text-[12px]">
+              <AlertCircle size={16} /> Not configured
+            </div>
+          ) : events?.slice(0, 5).map((event: any) => (
+            <div key={event.id} className="flex gap-2.5 items-start">
+              <div className="mt-0.5 text-[var(--color-text-2)] bg-[var(--color-surface-2)] p-1 rounded-md">
+                {event.type === 'PullRequestEvent' ? <GitPullRequest size={12} /> : <GitCommit size={12} />}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[11px] font-medium text-[var(--color-text-muted)] truncate">{ev.repo}</div>
-                <div className="text-[13px] text-[var(--color-text)] truncate">{ev.message}</div>
+                <div className="text-[12px] text-[var(--color-text)] truncate font-medium">
+                  {event.repo.name.split('/').pop()}
+                </div>
+                <div className="text-[11px] text-[var(--color-text-muted)] truncate mt-0.5">
+                  {event.type.replace('Event', '')}
+                </div>
               </div>
-              <div className="text-[11px] text-[var(--color-text-muted)] whitespace-nowrap">{ev.time}</div>
+              <span className="text-[10px] text-[var(--color-text-muted)] whitespace-nowrap">
+                {new Date(event.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
             </div>
           ))}
         </div>

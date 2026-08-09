@@ -8,6 +8,9 @@ import { WorkspaceModule } from './modules/workspace/workspace.module'
 import { KnowledgeModule } from './modules/knowledge/knowledge.module'
 import { ProjectsModule } from './modules/projects/projects.module'
 import { SettingsModule } from './modules/settings/settings.module'
+import { IntegrationsModule } from './modules/integrations/integrations.module'
+import { SecretsModule } from './modules/secrets/secrets.module'
+import { MonitoringModule } from './modules/monitoring/monitoring.module'
 
 @Module({
   imports: [
@@ -37,6 +40,9 @@ import { SettingsModule } from './modules/settings/settings.module'
     KnowledgeModule,
     ProjectsModule,
     SettingsModule,
+    IntegrationsModule,
+    SecretsModule,
+    MonitoringModule,
   ],
 })
 export class AppModule {}

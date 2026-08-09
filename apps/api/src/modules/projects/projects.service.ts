@@ -1,12 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../database/prisma.service'
+import { AuditService } from '../../shared/services/audit.service'
 import { CreateProjectDto } from './dto/create-project.dto'
 import { UpdateProjectDto } from './dto/update-project.dto'
 import { ProjectStatus } from '@prisma/client'
 
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   async findAll(userId: string, filters: { status?: ProjectStatus }) {
     return this.prisma.project.findMany({
@@ -32,7 +36,7 @@ export class ProjectsService {
   }
 
   async create(userId: string, dto: CreateProjectDto) {
-    return this.prisma.project.create({
+    const project = await this.prisma.project.create({
       data: {
         name: dto.name,
         description: dto.description ?? null,
@@ -45,6 +49,8 @@ export class ProjectsService {
         userId,
       },
     })
+    await this.auditService.log(userId, 'CREATE', 'project', project.id, { name: project.name })
+    return project
   }
 
   async update(id: string, userId: string, dto: UpdateProjectDto) {
@@ -67,10 +73,11 @@ export class ProjectsService {
 
   async remove(id: string, userId: string) {
     await this.findOne(id, userId)
-
-    return this.prisma.project.update({
+    const result = await this.prisma.project.update({
       where: { id },
       data: { deletedAt: new Date() },
     })
+    await this.auditService.log(userId, 'DELETE', 'project', id)
+    return result
   }
 }

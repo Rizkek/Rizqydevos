@@ -4,6 +4,7 @@ import { ValidationPipe } from '@nestjs/common'
 import { AppModule } from './app.module'
 import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
 import helmet from 'helmet'
+import cookieParser from 'cookie-parser'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -12,6 +13,7 @@ async function bootstrap() {
 
   // Security headers
   app.use(helmet())
+  app.use(cookieParser())
 
   // CORS — strict allowlist
   app.enableCors({

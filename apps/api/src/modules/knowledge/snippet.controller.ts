@@ -9,47 +9,50 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common'
 import { SnippetService } from './snippet.service'
 import { CreateSnippetDto } from './dto/create-snippet.dto'
 import { UpdateSnippetDto } from './dto/update-snippet.dto'
-
-const DEV_USER_ID = 'dev-user-placeholder'
+import { AuthGuard } from '../../shared/guards/auth.guard'
+import { CurrentUser } from '../../shared/decorators/current-user.decorator'
 
 @Controller('knowledge/snippets')
+@UseGuards(AuthGuard)
 export class SnippetController {
   constructor(private readonly snippetService: SnippetService) {}
 
   @Get()
   findAll(
+    @CurrentUser('id') userId: string,
     @Query('language') language?: string,
     @Query('pinned') pinned?: string,
   ) {
-    return this.snippetService.findAll(DEV_USER_ID, {
+    return this.snippetService.findAll(userId, {
       ...(language !== undefined && { language }),
       ...(pinned !== undefined && { pinned: pinned === 'true' }),
     })
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.snippetService.findOne(id, DEV_USER_ID)
+  findOne(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.snippetService.findOne(id, userId)
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreateSnippetDto) {
-    return this.snippetService.create(DEV_USER_ID, dto)
+  create(@Body() dto: CreateSnippetDto, @CurrentUser('id') userId: string) {
+    return this.snippetService.create(userId, dto)
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateSnippetDto) {
-    return this.snippetService.update(id, DEV_USER_ID, dto)
+  update(@Param('id') id: string, @Body() dto: UpdateSnippetDto, @CurrentUser('id') userId: string) {
+    return this.snippetService.update(id, userId, dto)
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string) {
-    await this.snippetService.remove(id, DEV_USER_ID)
+  async remove(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    await this.snippetService.remove(id, userId)
   }
 }

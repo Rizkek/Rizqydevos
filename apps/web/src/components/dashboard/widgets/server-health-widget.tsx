@@ -3,32 +3,46 @@
 import * as React from 'react'
 import { WidgetCard } from '../widget-card'
 import { Badge } from '@/components/ui/badge'
+import { useQuery } from '@tanstack/react-query'
+import { Loader2, AlertCircle, Cloud } from 'lucide-react'
+import { WidgetConfig } from '@/stores/widget.store'
 
-const services = [
-  { name: 'API Server', status: 'online', ping: '12ms' },
-  { name: 'PostgreSQL', status: 'online', ping: '2ms' },
-  { name: 'Redis Cache', status: 'online', ping: '1ms' },
-  { name: 'Worker (BullMQ)', status: 'degraded', ping: '150ms' },
-]
-
-export function ServerHealthWidget() {
+export function ServerHealthWidget({ config }: { config: WidgetConfig }) {
+  const { data: deployments, isLoading, error } = useQuery({
+    queryKey: ['vercel-deployments'],
+    queryFn: async () => {
+      const res = await fetch('http://localhost:3001/api/v1/integrations/vercel/deployments', {
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!res.ok) throw new Error('Integration not configured')
+      return res.json()
+    }
+  })
   return (
     <WidgetCard
       id="w-server-health"
       type="server-health"
-      title="System Health"
+      title="Recent Deployments"
       contentClassName="p-3"
     >
-      <div className="flex flex-col gap-2">
-        {services.map(service => (
-          <div key={service.name} className="flex items-center justify-between p-2 rounded-md bg-[var(--color-surface-2)]/50 border border-[var(--color-border-subtle)]">
-            <span className="text-[13px] font-medium text-[var(--color-text)]">{service.name}</span>
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] font-mono text-[var(--color-text-muted)]">{service.ping}</span>
-              <Badge variant={service.status === 'online' ? 'success' : service.status === 'degraded' ? 'warning' : 'destructive'} className="h-5 text-[10px]">
-                {service.status}
+      <div className="flex-1 overflow-y-auto space-y-2">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-2)] gap-2 text-[12px]">
+            <Loader2 size={14} className="animate-spin" /> Fetching...
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)] gap-2 text-[12px]">
+            <AlertCircle size={16} /> Not configured
+          </div>
+        ) : deployments?.slice(0, 4).map((dep: any) => (
+          <div key={dep.id} className="flex flex-col p-2 rounded-md bg-[var(--color-surface-2)]/50 border border-[var(--color-border-subtle)] hover:bg-[var(--color-surface-2)] transition-colors cursor-pointer">
+            <div className="flex items-center justify-between">
+              <span className="text-[12px] font-medium text-[var(--color-text)] truncate pr-2">{dep.name}</span>
+              <Badge variant={dep.state === 'READY' ? 'success' : dep.state === 'ERROR' ? 'destructive' : 'warning'} className="h-4 text-[9px] px-1.5">
+                {dep.state}
               </Badge>
             </div>
+            <span className="text-[10px] text-[var(--color-text-muted)] font-mono mt-1 truncate">{dep.url}</span>
           </div>
         ))}
       </div>

@@ -2,7 +2,7 @@ import { betterFetch } from "@better-fetch/fetch"
 import type { Session } from "better-auth/types"
 import { NextResponse, type NextRequest } from "next/server"
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Exclude static assets, API routes (except if we want to protect them here), and login

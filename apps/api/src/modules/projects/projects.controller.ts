@@ -9,44 +9,49 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common'
 import { ProjectsService } from './projects.service'
 import { CreateProjectDto } from './dto/create-project.dto'
 import { UpdateProjectDto } from './dto/update-project.dto'
 import { ProjectStatus } from '@prisma/client'
-
-const DEV_USER_ID = 'dev-user-placeholder'
+import { AuthGuard } from '../../shared/guards/auth.guard'
+import { CurrentUser } from '../../shared/decorators/current-user.decorator'
 
 @Controller('projects')
+@UseGuards(AuthGuard)
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Get()
-  findAll(@Query('status') status?: ProjectStatus) {
-    return this.projectsService.findAll(DEV_USER_ID, {
+  findAll(
+    @CurrentUser('id') userId: string,
+    @Query('status') status?: ProjectStatus
+  ) {
+    return this.projectsService.findAll(userId, {
       ...(status !== undefined && { status }),
     })
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.projectsService.findOne(id, DEV_USER_ID)
+  findOne(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.projectsService.findOne(id, userId)
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreateProjectDto) {
-    return this.projectsService.create(DEV_USER_ID, dto)
+  create(@Body() dto: CreateProjectDto, @CurrentUser('id') userId: string) {
+    return this.projectsService.create(userId, dto)
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateProjectDto) {
-    return this.projectsService.update(id, DEV_USER_ID, dto)
+  update(@Param('id') id: string, @Body() dto: UpdateProjectDto, @CurrentUser('id') userId: string) {
+    return this.projectsService.update(id, userId, dto)
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string) {
-    await this.projectsService.remove(id, DEV_USER_ID)
+  async remove(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    await this.projectsService.remove(id, userId)
   }
 }

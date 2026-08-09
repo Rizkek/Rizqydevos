@@ -13,7 +13,7 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { LayoutDashboard } from 'lucide-react'
 
 // Map of widget types to their React components
-const WIDGET_REGISTRY: Record<string, React.ComponentType> = {
+const WIDGET_REGISTRY: Record<string, React.ComponentType<{ config: any }>> = {
   'tasks': TasksWidget,
   'quick-notes': QuickNotesWidget,
   'server-health': ServerHealthWidget,
@@ -67,7 +67,7 @@ export function WidgetGrid() {
               transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
               className="h-[300px]" // Fixed height for MVP
             >
-              <WidgetComponent />
+              <WidgetComponent config={widgetConfig} />
             </motion.div>
           )
         })}

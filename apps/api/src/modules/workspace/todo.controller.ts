@@ -10,21 +10,22 @@ import {
   HttpCode,
   HttpStatus,
   ParseBoolPipe,
+  UseGuards,
 } from '@nestjs/common'
 import { TodoService } from './todo.service'
 import { CreateTodoDto } from './dto/create-todo.dto'
 import { UpdateTodoDto } from './dto/update-todo.dto'
-
-// NOTE: Auth guard will be applied in Phase 2.
-// For now, userId is extracted from a request header to allow local development.
-const DEV_USER_ID = 'dev-user-placeholder'
+import { AuthGuard } from '../../shared/guards/auth.guard'
+import { CurrentUser } from '../../shared/decorators/current-user.decorator'
 
 @Controller('workspace/todos')
+@UseGuards(AuthGuard)
 export class TodoController {
   constructor(private readonly todoService: TodoService) {}
 
   @Get()
   findAll(
+    @CurrentUser('id') userId: string,
     @Query('completed') completed?: string,
     @Query('priority') priority?: string,
   ) {
@@ -32,28 +33,28 @@ export class TodoController {
       ...(completed !== undefined && { completed: completed === 'true' }),
       ...(priority !== undefined && { priority }),
     }
-    return this.todoService.findAll(DEV_USER_ID, filters)
+    return this.todoService.findAll(userId, filters)
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.todoService.findOne(id, DEV_USER_ID)
+  findOne(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.todoService.findOne(id, userId)
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreateTodoDto) {
-    return this.todoService.create(DEV_USER_ID, dto)
+  create(@Body() dto: CreateTodoDto, @CurrentUser('id') userId: string) {
+    return this.todoService.create(userId, dto)
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateTodoDto) {
-    return this.todoService.update(id, DEV_USER_ID, dto)
+  update(@Param('id') id: string, @Body() dto: UpdateTodoDto, @CurrentUser('id') userId: string) {
+    return this.todoService.update(id, userId, dto)
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string) {
-    await this.todoService.remove(id, DEV_USER_ID)
+  async remove(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    await this.todoService.remove(id, userId)
   }
 }
