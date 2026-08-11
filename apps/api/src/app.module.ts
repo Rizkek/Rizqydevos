@@ -11,6 +11,7 @@ import { SettingsModule } from './modules/settings/settings.module'
 import { IntegrationsModule } from './modules/integrations/integrations.module'
 import { SecretsModule } from './modules/secrets/secrets.module'
 import { MonitoringModule } from './modules/monitoring/monitoring.module'
+import { AiModule } from './modules/ai/ai.module'
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { MonitoringModule } from './modules/monitoring/monitoring.module'
     IntegrationsModule,
     SecretsModule,
     MonitoringModule,
+    AiModule,
   ],
 })
 export class AppModule {}
