@@ -15,6 +15,13 @@ export class IntegrationsController {
     private readonly vercelService: VercelService,
   ) {}
 
+  @Get()
+  async getIntegrations(@CurrentUser('id') userId: string) {
+    const list = await this.integrationsService.getUserIntegrations(userId)
+    // omit sensitive tokens in response
+    return list.map(i => ({ provider: i.provider, enabled: i.enabled, id: i.id }))
+  }
+
   @Post(':provider')
   @HttpCode(HttpStatus.OK)
   async configure(
@@ -44,6 +51,11 @@ export class IntegrationsController {
   @Get('github/prs')
   async getGithubPRs(@CurrentUser('id') userId: string) {
     return this.githubService.getPullRequests(userId)
+  }
+
+  @Get('github/repos')
+  async getGithubRepos(@CurrentUser('id') userId: string) {
+    return this.githubService.getRepositories(userId)
   }
 
   @Get('vercel/deployments')

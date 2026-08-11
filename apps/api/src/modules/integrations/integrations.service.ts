@@ -61,6 +61,12 @@ export class IntegrationsService {
     }
   }
 
+  async getUserIntegrations(userId: string) {
+    return this.prisma.integration.findMany({
+      where: { userId },
+    })
+  }
+
   async getDecryptedToken(userId: string, provider: string): Promise<string | null> {
     const integration = await this.getIntegration(userId, provider)
     if (!integration || !integration.enabled) return null

@@ -2,12 +2,14 @@
 // Docs: https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
+  provider   = "prisma-client-js"
+  engineType = "library"
+  output     = "../node_modules/.prisma/client"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ── User & Auth ───────────────────────────────────────────────────────────────
@@ -37,6 +39,8 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("user")
 }
 
 // Better Auth session model
@@ -55,6 +59,7 @@ model Session {
 
   @@index([userId])
   @@index([token])
+  @@map("session")
 }
 
 // Better Auth account model (OAuth)
@@ -78,6 +83,7 @@ model Account {
 
   @@unique([providerId, accountId])
   @@index([userId])
+  @@map("account")
 }
 
 // Better Auth verification model
@@ -91,6 +97,7 @@ model Verification {
   updatedAt DateTime @updatedAt
 
   @@index([identifier])
+  @@map("verification")
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────

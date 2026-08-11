@@ -79,4 +79,31 @@ export class GithubService {
       throw new UnauthorizedException('Failed to communicate with GitHub. Check your token.')
     }
   }
+
+  async getRepositories(userId: string) {
+    try {
+      const octokit = await this.getClient(userId)
+      // Get repos for the authenticated user, sorted by pushed
+      const { data } = await octokit.repos.listForAuthenticatedUser({
+        sort: 'pushed',
+        per_page: 20,
+      })
+
+      return data.map(repo => ({
+        id: repo.id,
+        name: repo.name,
+        fullName: repo.full_name,
+        description: repo.description,
+        private: repo.private,
+        url: repo.html_url,
+        language: repo.language,
+        stargazersCount: repo.stargazers_count,
+        forksCount: repo.forks_count,
+        updatedAt: repo.updated_at,
+      }))
+    } catch (error: any) {
+      this.logger.error(`Failed to fetch GitHub Repositories: ${error.message}`, error.stack)
+      throw new UnauthorizedException('Failed to communicate with GitHub. Check your token.')
+    }
+  }
 }

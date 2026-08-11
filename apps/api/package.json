@@ -28,6 +28,7 @@
     "@octokit/rest": "^22.0.1",
     "@prisma/client": "^7.8.0",
     "@types/cookie-parser": "^1.4.10",
+    "@types/pg": "^8.21.0",
     "better-auth": "^1.6.23",
     "bullmq": "^5.56.0",
     "class-transformer": "^0.5.1",
@@ -35,9 +36,11 @@
     "cookie-parser": "^1.4.7",
     "helmet": "^8.0.0",
     "ioredis": "^5.4.2",
+    "pg": "^8.23.0",
     "pino": "^9.7.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "socket.io": "^4.8.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {

@@ -5,16 +5,26 @@ import { Card } from '@/components/ui/card'
 import { useQuery } from '@tanstack/react-query'
 import { Loader2, Server, Cloud, AlertCircle, ArrowUpRight, Activity } from 'lucide-react'
 
+import { fetchApi } from '@/lib/api'
+import Link from 'next/link'
+
 export default function InfrastructurePage() {
-  const { data: deployments, isLoading, error } = useQuery({
+  const { data: deployments, isLoading: isLoadingDeployments, error: vercelError } = useQuery({
     queryKey: ['vercel-deployments'],
     queryFn: async () => {
-      const res = await fetch('http://localhost:3001/api/v1/integrations/vercel/deployments', {
-        headers: { 'Content-Type': 'application/json' },
-      })
-      if (!res.ok) throw new Error('Failed to fetch Vercel deployments. Ensure you have configured your token.')
-      return res.json()
-    }
+      try {
+        return await fetchApi<any[]>('/integrations/vercel/deployments')
+      } catch (err: any) {
+        throw new Error(err.message || 'Failed to fetch Vercel deployments. Ensure you have configured your token.')
+      }
+    },
+    retry: false
+  })
+
+  const { data: healthChecks, isLoading: isLoadingHealth } = useQuery({
+    queryKey: ['health-checks'],
+    queryFn: () => fetchApi<any[]>('/monitoring/health/batch?urls=https://vercel.com,https://github.com,https://api.github.com,https://registry.npmjs.org'),
+    refetchInterval: 30000,
   })
 
   return (
@@ -34,17 +44,17 @@ export default function InfrastructurePage() {
             </h3>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {isLoading ? (
+            {isLoadingDeployments ? (
               <div className="flex items-center justify-center h-full text-[var(--color-text-2)] gap-2">
                 <Loader2 size={16} className="animate-spin" /> Fetching deployments...
               </div>
-            ) : error ? (
+            ) : vercelError ? (
               <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)] gap-3">
                 <AlertCircle size={24} className="text-[var(--color-text-2)]" />
-                <span className="text-[13px]">{error.message}</span>
-                <button className="px-3 py-1.5 text-[12px] bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded hover:bg-[var(--color-surface-3)]">
+                <span className="text-[13px]">{vercelError.message}</span>
+                <Link href="/settings" className="px-3 py-1.5 text-[12px] bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded hover:bg-[var(--color-surface-3)] transition-colors">
                   Configure Integration
-                </button>
+                </Link>
               </div>
             ) : deployments?.length === 0 ? (
               <div className="flex items-center justify-center h-full text-[var(--color-text-muted)] text-[13px]">
@@ -85,16 +95,35 @@ export default function InfrastructurePage() {
           <div className="p-4 border-b border-[var(--color-border-subtle)] flex items-center justify-between shrink-0">
             <h3 className="font-medium text-[var(--color-text)] flex items-center gap-2">
               <Server size={16} className="text-[var(--color-text-2)]" />
-              Health Checks
+              Service Health
             </h3>
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-blue-500/10 text-blue-500 border border-blue-500/20">
-              ALL SYSTEMS NOMINAL
+            <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-green-500/10 text-green-500 border border-green-500/20">
+              {healthChecks?.some(h => h.status !== 'up') ? 'DEGRADED' : 'ALL SYSTEMS NOMINAL'}
             </span>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center justify-center text-[var(--color-text-muted)] gap-3">
-             <Activity size={24} className="text-[var(--color-text-2)] opacity-50" />
-             <p className="text-[13px]">Monitoring configured endpoints...</p>
-             <p className="text-[12px] text-[var(--color-text-muted)] max-w-xs text-center">Health checks are running in simulation mode.</p>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {isLoadingHealth ? (
+              <div className="flex items-center justify-center h-full text-[var(--color-text-2)] gap-2">
+                <Loader2 size={16} className="animate-spin" /> Checking health...
+              </div>
+            ) : healthChecks?.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-[var(--color-text-muted)] text-[13px]">
+                No endpoints configured.
+              </div>
+            ) : (
+              healthChecks?.map((hc: any, i: number) => (
+                <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border-subtle)]">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[13px] font-medium text-[var(--color-text)]">{hc.url}</span>
+                    <span className="text-[11px] text-[var(--color-text-muted)]">{hc.statusText || 'OK'}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] font-mono text-[var(--color-text-muted)]">{hc.responseTime}ms</span>
+                    <span className={`w-2.5 h-2.5 rounded-full ${hc.status === 'up' ? 'bg-green-500' : 'bg-red-500'}`} />
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </Card>
       </div>

@@ -6,7 +6,10 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useUIStore, type Theme, type AccentColor } from '@/stores/ui.store'
-import { Check, User, Keyboard, Paintbrush, Monitor } from 'lucide-react'
+import { Check, User, Keyboard, Paintbrush, Monitor, Link2, Loader2, Trash2 } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { fetchApi } from '@/lib/api'
+import { Input } from '@/components/ui/input'
 
 const themes: { id: Theme; label: string }[] = [
   { id: 'dark', label: 'Dark' },
@@ -24,6 +27,40 @@ const colors: { id: AccentColor; label: string; bgClass: string }[] = [
 
 export default function SettingsPage() {
   const { theme, setTheme, accentColor, setAccentColor } = useUIStore()
+  const queryClient = useQueryClient()
+  
+  // Integrations state
+  const [githubToken, setGithubToken] = React.useState('')
+  const [vercelToken, setVercelToken] = React.useState('')
+
+  const { data: integrations = [], isLoading: isLoadingIntegrations } = useQuery({
+    queryKey: ['integrations'],
+    queryFn: () => fetchApi<any[]>('/integrations')
+  })
+
+  const saveIntegration = useMutation({
+    mutationFn: ({ provider, accessToken }: { provider: string, accessToken: string }) => 
+      fetchApi(`/integrations/${provider}`, {
+        method: 'POST',
+        body: JSON.stringify({ accessToken })
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['integrations'] })
+      setGithubToken('')
+      setVercelToken('')
+    }
+  })
+
+  const removeIntegration = useMutation({
+    mutationFn: (provider: string) => 
+      fetchApi(`/integrations/${provider}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['integrations'] })
+    }
+  })
+
+  const isGithubConnected = integrations.some(i => i.provider === 'github')
+  const isVercelConnected = integrations.some(i => i.provider === 'vercel')
 
   return (
     <div className="p-[var(--spacing-page-pad)] max-w-4xl mx-auto w-full h-full flex flex-col">
@@ -104,6 +141,106 @@ export default function SettingsPage() {
               </div>
             </div>
             <Button variant="outline">Edit Profile</Button>
+          </Card>
+        </section>
+
+        {/* Integrations */}
+        <section className="flex flex-col gap-4">
+          <h2 className="text-[14px] font-semibold text-[var(--color-text)] flex items-center gap-2">
+            <Link2 size={16} className="text-[var(--color-text-muted)]" /> Integrations
+          </h2>
+          <Card className="p-5 flex flex-col gap-6">
+            
+            {/* GitHub */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-[13px] font-semibold text-[var(--color-text)]">GitHub</h3>
+                  <p className="text-[12px] text-[var(--color-text-muted)]">Connect your GitHub account for activity feeds and repo management.</p>
+                </div>
+                {isGithubConnected ? (
+                  <Badge variant="success" className="bg-[var(--color-success-muted)] text-[var(--color-success)] border-transparent">Connected</Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border-transparent">Not Connected</Badge>
+                )}
+              </div>
+              {!isGithubConnected ? (
+                <form 
+                  className="flex gap-2 mt-2" 
+                  onSubmit={(e) => { e.preventDefault(); saveIntegration.mutate({ provider: 'github', accessToken: githubToken }); }}
+                >
+                  <Input 
+                    type="password" 
+                    placeholder="Personal Access Token (classic or fine-grained)" 
+                    value={githubToken}
+                    onChange={e => setGithubToken(e.target.value)}
+                    className="flex-1 bg-[var(--color-surface)]"
+                  />
+                  <Button type="submit" disabled={!githubToken || saveIntegration.isPending}>
+                    {saveIntegration.isPending ? <Loader2 size={14} className="animate-spin" /> : 'Connect'}
+                  </Button>
+                </form>
+              ) : (
+                <div className="flex justify-end mt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-[var(--color-danger)] border-[var(--color-danger-muted)] hover:bg-[var(--color-danger-muted)]"
+                    onClick={() => removeIntegration.mutate('github')}
+                    disabled={removeIntegration.isPending}
+                  >
+                    <Trash2 size={14} className="mr-2" /> Disconnect
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <div className="h-px bg-[var(--color-border-subtle)] w-full" />
+
+            {/* Vercel */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-[13px] font-semibold text-[var(--color-text)]">Vercel</h3>
+                  <p className="text-[12px] text-[var(--color-text-muted)]">Connect your Vercel account to view deployments and logs.</p>
+                </div>
+                {isVercelConnected ? (
+                  <Badge variant="success" className="bg-[var(--color-success-muted)] text-[var(--color-success)] border-transparent">Connected</Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border-transparent">Not Connected</Badge>
+                )}
+              </div>
+              {!isVercelConnected ? (
+                <form 
+                  className="flex gap-2 mt-2" 
+                  onSubmit={(e) => { e.preventDefault(); saveIntegration.mutate({ provider: 'vercel', accessToken: vercelToken }); }}
+                >
+                  <Input 
+                    type="password" 
+                    placeholder="Vercel Access Token" 
+                    value={vercelToken}
+                    onChange={e => setVercelToken(e.target.value)}
+                    className="flex-1 bg-[var(--color-surface)]"
+                  />
+                  <Button type="submit" disabled={!vercelToken || saveIntegration.isPending}>
+                    {saveIntegration.isPending ? <Loader2 size={14} className="animate-spin" /> : 'Connect'}
+                  </Button>
+                </form>
+              ) : (
+                <div className="flex justify-end mt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-[var(--color-danger)] border-[var(--color-danger-muted)] hover:bg-[var(--color-danger-muted)]"
+                    onClick={() => removeIntegration.mutate('vercel')}
+                    disabled={removeIntegration.isPending}
+                  >
+                    <Trash2 size={14} className="mr-2" /> Disconnect
+                  </Button>
+                </div>
+              )}
+            </div>
+
           </Card>
         </section>
 
