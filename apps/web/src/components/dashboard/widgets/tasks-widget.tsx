@@ -2,21 +2,47 @@
 
 import * as React from 'react'
 import { WidgetCard } from '../widget-card'
-import { CheckCircle2, Circle, Plus } from 'lucide-react'
+import { CheckCircle2, Circle, Plus, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { WidgetConfig } from '@/stores/widget.store'
 
-const mockTasks = [
-  { id: '1', title: 'Review ADR-005', completed: false, priority: 'HIGH' },
-  { id: '2', title: 'Merge PR #42 for Dashboard', completed: false, priority: 'URGENT' },
-  { id: '3', title: 'Update dependencies', completed: true, priority: 'MEDIUM' },
-]
+export function TasksWidget({ config }: { config?: WidgetConfig }) {
+  const queryClient = useQueryClient()
 
-export function TasksWidget() {
-  const [tasks, setTasks] = React.useState(mockTasks)
+  const { data: tasks, isLoading } = useQuery({
+    queryKey: ['todos'],
+    queryFn: async () => {
+      const res = await fetch('http://localhost:3001/api/v1/workspace/todos', {
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'omit', // adjust if auth is needed
+      })
+      if (!res.ok) throw new Error('Failed to fetch tasks')
+      return res.json()
+    }
+  })
 
-  const toggleTask = (id: string) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t))
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
+      const res = await fetch(`http://localhost:3001/api/v1/workspace/todos/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed }),
+      })
+      if (!res.ok) throw new Error('Failed to update task')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] })
+    }
+  })
+
+  const toggleTask = (id: string, currentStatus: boolean) => {
+    toggleMutation.mutate({ id, completed: !currentStatus })
   }
+
+  const activeTasks = tasks?.filter((t: any) => !t.completed) || []
+  const completedTasks = tasks?.filter((t: any) => t.completed) || []
 
   return (
     <WidgetCard
@@ -31,28 +57,53 @@ export function TasksWidget() {
       contentClassName="p-3"
     >
       <div className="flex flex-col gap-1 overflow-y-auto h-full pr-1">
-        {tasks.map(task => (
-          <div 
-            key={task.id} 
-            className="group flex items-start gap-3 p-2 rounded-md hover:bg-[var(--color-surface-2)] transition-colors cursor-pointer"
-            onClick={() => toggleTask(task.id)}
-          >
-            <button className="mt-0.5 shrink-0 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] transition-colors">
-              {task.completed ? (
-                <CheckCircle2 size={16} className="text-[var(--color-success)]" />
-              ) : (
-                <Circle size={16} />
-              )}
-            </button>
-            <div className={`flex-1 text-[13px] leading-tight ${task.completed ? 'text-[var(--color-text-disabled)] line-through' : 'text-[var(--color-text)]'}`}>
-              {task.title}
-            </div>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-2)] gap-2 text-[12px]">
+            <Loader2 size={14} className="animate-spin" /> Fetching...
           </div>
-        ))}
-        {tasks.filter(t => !t.completed).length === 0 && (
-          <div className="flex-1 flex items-center justify-center text-[12px] text-[var(--color-text-muted)] italic">
-            All tasks completed.
-          </div>
+        ) : (
+          <>
+            {activeTasks.map((task: any) => (
+              <div 
+                key={task.id} 
+                className="group flex items-start gap-3 p-2 rounded-md hover:bg-[var(--color-surface-2)] transition-colors cursor-pointer"
+                onClick={() => toggleTask(task.id, task.completed)}
+              >
+                <button className="mt-0.5 shrink-0 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] transition-colors">
+                  <Circle size={16} />
+                </button>
+                <div className="flex-1 text-[13px] leading-tight text-[var(--color-text)]">
+                  {task.title}
+                </div>
+              </div>
+            ))}
+            
+            {completedTasks.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-[var(--color-border-subtle)]">
+                <span className="text-[10px] text-[var(--color-text-muted)] font-medium uppercase tracking-wider ml-2 mb-1 block">Completed</span>
+                {completedTasks.map((task: any) => (
+                  <div 
+                    key={task.id} 
+                    className="group flex items-start gap-3 p-2 rounded-md hover:bg-[var(--color-surface-2)] transition-colors cursor-pointer"
+                    onClick={() => toggleTask(task.id, task.completed)}
+                  >
+                    <button className="mt-0.5 shrink-0 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] transition-colors">
+                      <CheckCircle2 size={16} className="text-[var(--color-success)]" />
+                    </button>
+                    <div className="flex-1 text-[13px] leading-tight text-[var(--color-text-disabled)] line-through">
+                      {task.title}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {tasks?.length === 0 && (
+              <div className="flex-1 flex items-center justify-center text-[12px] text-[var(--color-text-muted)] italic">
+                No tasks found.
+              </div>
+            )}
+          </>
         )}
       </div>
     </WidgetCard>

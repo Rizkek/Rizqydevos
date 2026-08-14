@@ -3,46 +3,57 @@ import {
   ExecutionContext,
   Injectable,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common'
 import { PrismaService } from '../../database/prisma.service'
 import { Request } from 'express'
 
 @Injectable()
 export class AuthGuard implements CanActivate {
+  private readonly logger = new Logger(AuthGuard.name)
+
   constructor(private readonly prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>()
     
-    // Better Auth uses this cookie name by default, or an Authorization header
-    const token = 
-      request.cookies?.['better-auth.session_token'] ||
-      this.extractTokenFromHeader(request)
-
-    if (!token) {
-      throw new UnauthorizedException('Authentication token missing')
+    const cookieHeader = request.headers.cookie
+    if (!cookieHeader) {
+      this.logger.warn(`[${request.method} ${request.url}] Authentication cookie missing`)
+      throw new UnauthorizedException('Authentication cookie missing')
     }
 
-    // Lookup session in DB
-    const session = await this.prisma.session.findUnique({
-      where: { token },
-      include: { user: true },
-    })
+    try {
+      // Forward the cookie to the frontend's better-auth endpoint to verify the session
+      const authUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000'
+      this.logger.debug(`Verifying session against ${authUrl}/api/auth/get-session`)
+      
+      const response = await fetch(`${authUrl}/api/auth/get-session`, {
+        headers: {
+          cookie: cookieHeader,
+        },
+      })
 
-    if (!session) {
-      throw new UnauthorizedException('Invalid or expired session')
+      if (!response.ok) {
+        this.logger.error(`Session verification failed with status ${response.status}`)
+        throw new UnauthorizedException('Invalid or expired session')
+      }
+
+      const data = (await response.json()) as { session?: any; user?: any }
+      if (!data || !data.session) {
+        this.logger.error('Session data missing from verification response')
+        throw new UnauthorizedException('Invalid session data')
+      }
+
+      // Attach user to request
+      // @ts-ignore
+      request.user = data.user
+      this.logger.debug(`Session verified for user: ${data.user.id}`)
+      return true
+    } catch (error: any) {
+      this.logger.error(`AuthGuard Error: ${error.message}`, error.stack)
+      throw new UnauthorizedException('Session verification failed')
     }
-
-    if (session.expiresAt < new Date()) {
-      // Better auth handles cleanup, but we should reject expired sessions
-      throw new UnauthorizedException('Session expired')
-    }
-
-    // Attach user to request
-    // @ts-ignore - we dynamically add user to Request
-    request.user = session.user
-
-    return true
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {

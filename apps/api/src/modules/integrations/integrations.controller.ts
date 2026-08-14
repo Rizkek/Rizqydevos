@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common'
+import { Controller, Get, Post, Delete, Body, Param, UseGuards, HttpCode, HttpStatus, Logger, InternalServerErrorException } from '@nestjs/common'
 import { IntegrationsService } from './integrations.service'
 import { GithubService } from './github.service'
 import { VercelService } from './vercel.service'
@@ -9,6 +9,8 @@ import { CurrentUser } from '../../shared/decorators/current-user.decorator'
 @Controller('integrations')
 @UseGuards(AuthGuard)
 export class IntegrationsController {
+  private readonly logger = new Logger(IntegrationsController.name)
+
   constructor(
     private readonly integrationsService: IntegrationsService,
     private readonly githubService: GithubService,
@@ -17,9 +19,14 @@ export class IntegrationsController {
 
   @Get()
   async getIntegrations(@CurrentUser('id') userId: string) {
-    const list = await this.integrationsService.getUserIntegrations(userId)
-    // omit sensitive tokens in response
-    return list.map(i => ({ provider: i.provider, enabled: i.enabled, id: i.id }))
+    try {
+      const list = await this.integrationsService.getUserIntegrations(userId)
+      // omit sensitive tokens in response
+      return list.map(i => ({ provider: i.provider, enabled: i.enabled, id: i.id }))
+    } catch (error: any) {
+      this.logger.error(`Failed to get integrations for user ${userId}: ${error.message}`, error.stack)
+      throw new InternalServerErrorException('Failed to fetch integrations')
+    }
   }
 
   @Post(':provider')
@@ -29,9 +36,16 @@ export class IntegrationsController {
     @Body() dto: CreateIntegrationDto,
     @CurrentUser('id') userId: string,
   ) {
-    dto.provider = provider
-    await this.integrationsService.upsert(userId, dto)
-    return { success: true }
+    this.logger.log(`Configuring integration ${provider} for user ${userId}...`)
+    try {
+      dto.provider = provider
+      await this.integrationsService.upsert(userId, dto)
+      this.logger.log(`Successfully configured integration ${provider} for user ${userId}`)
+      return { success: true }
+    } catch (error: any) {
+      this.logger.error(`Failed to configure integration ${provider} for user ${userId}: ${error.message}`, error.stack)
+      throw new InternalServerErrorException(`Failed to configure ${provider} integration`)
+    }
   }
 
   @Delete(':provider')
@@ -40,7 +54,14 @@ export class IntegrationsController {
     @Param('provider') provider: string,
     @CurrentUser('id') userId: string,
   ) {
-    await this.integrationsService.remove(userId, provider)
+    this.logger.log(`Removing integration ${provider} for user ${userId}...`)
+    try {
+      await this.integrationsService.remove(userId, provider)
+      this.logger.log(`Successfully removed integration ${provider} for user ${userId}`)
+    } catch (error: any) {
+      this.logger.error(`Failed to remove integration ${provider} for user ${userId}: ${error.message}`, error.stack)
+      throw new InternalServerErrorException(`Failed to remove ${provider} integration`)
+    }
   }
 
   @Get('github/activity')

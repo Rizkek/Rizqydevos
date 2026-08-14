@@ -3,23 +3,23 @@
 import * as React from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useWidgetStore } from '@/stores/widget.store'
-import { TasksWidget } from './widgets/tasks-widget'
-import { QuickNotesWidget } from './widgets/quick-notes-widget'
-import { ServerHealthWidget } from './widgets/server-health-widget'
-import { PomodoroWidget } from './widgets/pomodoro-widget'
-import { GithubWidget } from './widgets/github-widget'
-import { SnippetsWidget } from './widgets/snippets-widget'
+import dynamic from 'next/dynamic'
 import { EmptyState } from '@/components/shared/empty-state'
 import { LayoutDashboard } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+
+function WidgetSkeleton() {
+  return <Skeleton className="w-full h-full rounded-xl bg-[var(--color-surface-2)]" />
+}
 
 // Map of widget types to their React components
 const WIDGET_REGISTRY: Record<string, React.ComponentType<{ config: any }>> = {
-  'tasks': TasksWidget,
-  'quick-notes': QuickNotesWidget,
-  'server-health': ServerHealthWidget,
-  'pomodoro': PomodoroWidget,
-  'github': GithubWidget,
-  'snippets': SnippetsWidget,
+  'tasks': dynamic(() => import('./widgets/tasks-widget').then((mod) => mod.TasksWidget), { loading: () => <WidgetSkeleton /> }),
+  'quick-notes': dynamic(() => import('./widgets/quick-notes-widget').then((mod) => mod.QuickNotesWidget), { loading: () => <WidgetSkeleton /> }),
+  'server-health': dynamic(() => import('./widgets/server-health-widget').then((mod) => mod.ServerHealthWidget), { loading: () => <WidgetSkeleton /> }),
+  'pomodoro': dynamic(() => import('./widgets/pomodoro-widget').then((mod) => mod.PomodoroWidget), { loading: () => <WidgetSkeleton /> }),
+  'github': dynamic(() => import('./widgets/github-widget').then((mod) => mod.GithubWidget), { loading: () => <WidgetSkeleton /> }),
+  'snippets': dynamic(() => import('./widgets/snippets-widget').then((mod) => mod.SnippetsWidget), { loading: () => <WidgetSkeleton /> }),
 }
 
 export function WidgetGrid() {
@@ -35,7 +35,18 @@ export function WidgetGrid() {
   // Hydration safety
   const [mounted, setMounted] = React.useState(false)
   React.useEffect(() => setMounted(true), [])
-  if (!mounted) return <div className="h-full min-h-[400px]" />
+
+  if (!mounted) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-[var(--widget-gap)] auto-rows-[minmax(300px,auto)]">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="h-[300px]">
+            <Skeleton className="w-full h-full rounded-xl bg-[var(--color-surface-2)]" />
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   if (activeWidgets.length === 0) {
     return (
