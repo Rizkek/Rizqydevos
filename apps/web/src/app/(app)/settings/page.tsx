@@ -10,6 +10,7 @@ import { Check, User, Keyboard, Paintbrush, Monitor, Link2, Loader2, Trash2 } fr
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchApi } from '@/lib/api'
 import { Input } from '@/components/ui/input'
+import { toast } from 'sonner'
 
 const themes: { id: Theme; label: string }[] = [
   { id: 'dark', label: 'Dark' },
@@ -44,18 +45,26 @@ export default function SettingsPage() {
         method: 'POST',
         body: JSON.stringify({ accessToken })
       }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['integrations'] })
       setGithubToken('')
       setVercelToken('')
+      toast.success(`Successfully connected to ${variables.provider}`)
+    },
+    onError: (error: any, variables) => {
+      toast.error(`Failed to connect ${variables.provider}: ${error.message || 'Unknown error'}`)
     }
   })
 
   const removeIntegration = useMutation({
     mutationFn: (provider: string) => 
       fetchApi(`/integrations/${provider}`, { method: 'DELETE' }),
-    onSuccess: () => {
+    onSuccess: (_, provider) => {
       queryClient.invalidateQueries({ queryKey: ['integrations'] })
+      toast.success(`Successfully disconnected ${provider}`)
+    },
+    onError: (error: any, provider) => {
+      toast.error(`Failed to disconnect ${provider}: ${error.message || 'Unknown error'}`)
     }
   })
 

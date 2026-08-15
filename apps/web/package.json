@@ -29,6 +29,7 @@
     "@tanstack/react-query": "^5.80.7",
     "@tanstack/react-query-devtools": "^5.80.7",
     "@types/pg": "^8.21.0",
+    "@vercel/speed-insights": "^2.0.0",
     "@xterm/addon-fit": "^0.11.0",
     "better-auth": "^1.6.26",
     "class-variance-authority": "^0.7.1",
