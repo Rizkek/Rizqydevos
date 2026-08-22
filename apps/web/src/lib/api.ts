@@ -20,7 +20,8 @@ export const fetchApi = async <T>(endpoint: string, options: RequestInit = {}): 
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
-    throw new ApiError(response.status, errorData.message || 'API request failed')
+    const message = errorData?.error?.message || errorData?.message || 'API request failed'
+    throw new ApiError(response.status, message)
   }
 
   // Handle 204 No Content
@@ -28,5 +29,11 @@ export const fetchApi = async <T>(endpoint: string, options: RequestInit = {}): 
     return {} as T
   }
 
-  return response.json()
+  const json = await response.json()
+  // If the backend wraps the response in a success envelope, unwrap it
+  if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
+    return json.data as T
+  }
+  
+  return json as T
 }

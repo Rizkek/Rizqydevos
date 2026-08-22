@@ -6,6 +6,7 @@ import { CheckCircle2, Circle, Plus, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { WidgetConfig } from '@/stores/widget.store'
+import { fetchApi } from '@/lib/api'
 
 export function TasksWidget({ config }: { config?: WidgetConfig }) {
   const queryClient = useQueryClient()
@@ -13,24 +14,16 @@ export function TasksWidget({ config }: { config?: WidgetConfig }) {
   const { data: tasks, isLoading } = useQuery({
     queryKey: ['todos'],
     queryFn: async () => {
-      const res = await fetch('http://localhost:3001/api/v1/workspace/todos', {
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'omit', // adjust if auth is needed
-      })
-      if (!res.ok) throw new Error('Failed to fetch tasks')
-      return res.json()
+      return fetchApi<any[]>('/workspace/todos')
     }
   })
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
-      const res = await fetch(`http://localhost:3001/api/v1/workspace/todos/${id}`, {
+      return fetchApi(`/workspace/todos/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ completed }),
       })
-      if (!res.ok) throw new Error('Failed to update task')
-      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todos'] })

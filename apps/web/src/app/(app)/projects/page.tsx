@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/shared/page-header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Github, Globe, Activity, PauseCircle, Archive, Loader2, X, Trash2, Edit2 } from 'lucide-react'
+import { Plus, Code, Globe, Activity, PauseCircle, Archive, Loader2, X, Trash2, Edit2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -157,7 +157,7 @@ export default function ProjectsPage() {
                 <div className="flex items-center gap-3">
                   {project.repoUrl && (
                     <a href={project.repoUrl} target="_blank" rel="noreferrer" className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors flex items-center gap-1.5 text-[12px] font-medium" onClick={(e) => e.stopPropagation()}>
-                      <Github size={14} /> GitHub
+                      <Code size={14} /> Code
                     </a>
                   )}
                   {project.deployUrl && (

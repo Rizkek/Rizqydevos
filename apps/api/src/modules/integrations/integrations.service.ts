@@ -12,7 +12,7 @@ export class IntegrationsService {
       where: {
         userId_provider: {
           userId,
-          provider: dto.provider,
+          provider: dto.provider!,
         },
       },
     })
@@ -34,7 +34,7 @@ export class IntegrationsService {
     return this.prisma.integration.create({
       data: {
         userId,
-        provider: dto.provider,
+        provider: dto.provider!,
         accessToken: encryptedAccessToken ?? null,
         refreshToken: encryptedRefreshToken ?? null,
         metadata: dto.metadata ?? {},

@@ -31,7 +31,18 @@ const envSchema = z.object({
 
   // Encryption (for secrets manager)
   ENCRYPTION_KEY: z.string().min(32).optional(),
-})
+}).refine(
+  (data) => {
+    if (data.NODE_ENV === 'production' && !data.ENCRYPTION_KEY) {
+      return false
+    }
+    return true
+  },
+  {
+    message: 'ENCRYPTION_KEY is required in production',
+    path: ['ENCRYPTION_KEY'],
+  }
+)
 
 export type Env = z.infer<typeof envSchema>
 

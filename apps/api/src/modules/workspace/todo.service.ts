@@ -53,7 +53,7 @@ export class TodoService {
         title: dto.title,
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.priority !== undefined && { priority: dto.priority }),
-        ...(dto.dueDate !== undefined && { dueDate: new Date(dto.dueDate) }),
+        ...(dto.dueDate !== undefined && { dueDate: dto.dueDate ? new Date(dto.dueDate) : null }),
         tags: dto.tags ?? [],
         userId,
       },
@@ -70,7 +70,7 @@ export class TodoService {
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.priority !== undefined && { priority: dto.priority }),
         ...(dto.completed !== undefined && { completed: dto.completed }),
-        ...(dto.dueDate !== undefined && { dueDate: new Date(dto.dueDate) }),
+        ...(dto.dueDate !== undefined && { dueDate: dto.dueDate ? new Date(dto.dueDate) : null }),
         ...(dto.tags !== undefined && { tags: dto.tags }),
       },
     })

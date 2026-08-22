@@ -2,7 +2,8 @@ import { IsString, IsOptional, IsBoolean } from 'class-validator'
 
 export class CreateIntegrationDto {
   @IsString()
-  provider: string
+  @IsOptional()
+  provider?: string
 
   @IsString()
   @IsOptional()

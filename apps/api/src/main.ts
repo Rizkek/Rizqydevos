@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core'
 import { ValidationPipe } from '@nestjs/common'
 import { AppModule } from './app.module'
 import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
+import { ResponseTransformInterceptor } from './shared/interceptors/response-transform.interceptor'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 
@@ -35,6 +36,9 @@ async function bootstrap() {
 
   // Global exception filter — consistent error format
   app.useGlobalFilters(new GlobalExceptionFilter())
+
+  // Global response interceptor — consistent success format
+  app.useGlobalInterceptors(new ResponseTransformInterceptor())
 
   // API prefix
   app.setGlobalPrefix('api/v1')

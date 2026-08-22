@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../../database/prisma.service'
 import { AuditService } from '../../shared/services/audit.service'
 import { CreateSecretDto, UpdateSecretDto } from './dto/secret.dto'
@@ -46,26 +47,27 @@ export class SecretService {
   }
 
   async create(userId: string, dto: CreateSecretDto) {
-    // Enforce unique key per user
-    const existing = await this.prisma.secret.findFirst({
-      where: { userId, key: dto.key, deletedAt: null },
-    })
-    if (existing) throw new ConflictException(`A secret with key "${dto.key}" already exists`)
+    try {
+      const secret = await this.prisma.secret.create({
+        data: {
+          name: dto.name,
+          key: dto.key,
+          value: encrypt(dto.value),
+          category: dto.category ?? null,
+          description: dto.description ?? null,
+          userId,
+        },
+      })
 
-    const secret = await this.prisma.secret.create({
-      data: {
-        name: dto.name,
-        key: dto.key,
-        value: encrypt(dto.value),
-        category: dto.category ?? null,
-        description: dto.description ?? null,
-        userId,
-      },
-    })
+      await this.auditService.log(userId, 'CREATE', 'secret', secret.id, { key: secret.key })
 
-    await this.auditService.log(userId, 'CREATE', 'secret', secret.id, { key: secret.key })
-
-    return { ...secret, value: MASK }
+      return { ...secret, value: MASK }
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException(`A secret with key "${dto.key}" already exists`)
+      }
+      throw error
+    }
   }
 
   async update(id: string, userId: string, dto: UpdateSecretDto) {

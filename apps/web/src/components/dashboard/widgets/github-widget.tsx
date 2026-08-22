@@ -6,16 +6,15 @@ import { GitPullRequest, GitCommit, ExternalLink, Loader2, AlertCircle } from 'l
 import { Button } from '@/components/ui/button'
 import { WidgetConfig } from '@/stores/widget.store'
 import { useQuery } from '@tanstack/react-query'
+import { fetchApi } from '@/lib/api'
 
 export function GithubWidget({ config }: { config: WidgetConfig }) {
   const { data: events, isLoading, error } = useQuery({
     queryKey: ['github-activity'],
     queryFn: async () => {
-      const res = await fetch('http://localhost:3001/api/v1/integrations/github/activity', {
-        headers: { 'Content-Type': 'application/json' },
+      return fetchApi<any[]>('/integrations/github/activity').catch((err) => {
+        throw new Error('Integration not configured')
       })
-      if (!res.ok) throw new Error('Integration not configured')
-      return res.json()
     }
   })
 

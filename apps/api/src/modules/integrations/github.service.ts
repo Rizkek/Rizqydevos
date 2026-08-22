@@ -1,6 +1,5 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common'
 import { IntegrationsService } from './integrations.service'
-import { Octokit } from '@octokit/rest'
 
 @Injectable()
 export class GithubService {
@@ -8,11 +7,14 @@ export class GithubService {
 
   constructor(private readonly integrationsService: IntegrationsService) {}
 
-  private async getClient(userId: string): Promise<Octokit> {
+  private async getClient(userId: string) {
     const token = await this.integrationsService.getDecryptedToken(userId, 'github')
     if (!token) {
       throw new UnauthorizedException('GitHub integration not configured or token missing')
     }
+    
+    // Dynamic import to bypass ESM vs CommonJS static import restriction
+    const { Octokit } = await import('@octokit/rest')
     return new Octokit({ auth: token })
   }
 

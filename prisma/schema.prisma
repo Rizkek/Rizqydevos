@@ -9,17 +9,16 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ── User & Auth ───────────────────────────────────────────────────────────────
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  avatarUrl String?
-  timezone  String   @default("Asia/Jakarta")
+  id            String  @id @default(cuid())
+  name          String
+  email         String  @unique
+  avatarUrl     String?
+  timezone      String  @default("Asia/Jakarta")
   emailVerified Boolean @default(false)
 
   // Relations
@@ -52,7 +51,7 @@ model Session {
   ipAddress String?
   userAgent String?
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -64,7 +63,7 @@ model Session {
 
 // Better Auth account model (OAuth)
 model Account {
-  id                    String  @id
+  id                    String    @id
   userId                String
   accountId             String
   providerId            String
@@ -76,7 +75,7 @@ model Account {
   scope                 String?
   password              String?
 
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -103,31 +102,31 @@ model Verification {
 // ── Settings ──────────────────────────────────────────────────────────────────
 
 model UserSettings {
-  id         String @id @default(cuid())
-  theme      String @default("dark")  // 'dark' | 'light' | 'system'
-  density    String @default("normal") // 'compact' | 'normal' | 'spacious'
-  accentColor String @default("violet")
+  id          String  @id @default(cuid())
+  theme       String  @default("dark") // 'dark' | 'light' | 'system'
+  density     String  @default("normal") // 'compact' | 'normal' | 'spacious'
+  accentColor String  @default("violet")
   sidebarOpen Boolean @default(true)
 
-  userId     String @unique
-  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  updatedAt  DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 }
 
 model Widget {
   id       String     @id @default(cuid())
-  type     String     // 'tasks' | 'github' | 'pomodoro' | etc.
+  type     String // 'tasks' | 'github' | 'pomodoro' | etc.
   enabled  Boolean    @default(true)
   position Int
   size     WidgetSize @default(MEDIUM)
-  config   Json?      // JSONB — widget-specific settings
+  config   Json? // JSONB — widget-specific settings
 
-  userId   String
-  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, type])
   @@index([userId, enabled])
@@ -151,11 +150,11 @@ model Todo {
   tags        String[]
   deletedAt   DateTime?
 
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([userId, completed])
@@ -170,37 +169,38 @@ enum Priority {
 }
 
 model Bookmark {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   url         String
   description String?
   favicon     String?
   tags        String[]
-  pinned      Boolean  @default(false)
+  pinned      Boolean   @default(false)
   deletedAt   DateTime?
 
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([userId, deletedAt])
 }
 
 model Note {
   id        String    @id @default(cuid())
   title     String
-  content   String    // Markdown
+  content   String // Markdown
   tags      String[]
   pinned    Boolean   @default(false)
   deletedAt DateTime?
 
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([userId, deletedAt])
@@ -213,19 +213,20 @@ model Snippet {
   title       String
   description String?
   content     String
-  language    String    // 'typescript' | 'python' | 'bash' | etc.
+  language    String // 'typescript' | 'python' | 'bash' | etc.
   tags        String[]
   pinned      Boolean   @default(false)
   deletedAt   DateTime?
 
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([userId, language])
+  @@index([userId, deletedAt])
 }
 
 // ── Projects ──────────────────────────────────────────────────────────────────
@@ -237,19 +238,20 @@ model Project {
   status      ProjectStatus @default(ACTIVE)
   repoUrl     String?
   deployUrl   String?
-  color       String?       // for visual differentiation
+  color       String? // for visual differentiation
   tags        String[]
   techStack   String[]
   deletedAt   DateTime?
 
-  userId      String
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([userId, status])
+  @@index([userId, deletedAt])
 }
 
 enum ProjectStatus {
@@ -264,34 +266,35 @@ model Secret {
   id          String    @id @default(cuid())
   name        String
   key         String
-  value       String    // AES-256-GCM encrypted at app layer before storing
-  category    String?   // 'api-key' | 'oauth' | 'database' | 'ssh' | etc.
+  value       String // AES-256-GCM encrypted at app layer before storing
+  category    String? // 'api-key' | 'oauth' | 'database' | 'ssh' | etc.
   description String?
   deletedAt   DateTime?
 
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, key])
   @@index([userId])
+  @@index([userId, deletedAt])
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
-  action     String   // 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT'
-  resource   String   // 'todo' | 'secret' | 'snippet' | etc.
+  id         String  @id @default(cuid())
+  action     String // 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT'
+  resource   String // 'todo' | 'secret' | 'snippet' | etc.
   resourceId String?
-  metadata   Json?    // JSONB — old/new values, context
+  metadata   Json? // JSONB — old/new values, context
   ipAddress  String?
   userAgent  String?
 
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
   // AuditLog is APPEND-ONLY — never updated or soft-deleted
 
   @@index([userId])
@@ -304,18 +307,18 @@ model AuditLog {
 
 model Integration {
   id           String    @id @default(cuid())
-  provider     String    // 'github' | 'vercel' | 'cloudflare' | 'supabase' | etc.
-  accessToken  String?   // encrypted
-  refreshToken String?   // encrypted
+  provider     String // 'github' | 'vercel' | 'cloudflare' | 'supabase' | etc.
+  accessToken  String? // encrypted
+  refreshToken String? // encrypted
   expiresAt    DateTime?
-  metadata     Json?     // provider-specific data (username, org, etc.)
+  metadata     Json? // provider-specific data (username, org, etc.)
   enabled      Boolean   @default(true)
 
-  userId       String
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, provider])
   @@index([userId])
@@ -327,19 +330,20 @@ model AiPrompt {
   id         String    @id @default(cuid())
   title      String
   content    String
-  category   String?   // 'coding' | 'review' | 'explain' | 'refactor' | etc.
+  category   String? // 'coding' | 'review' | 'explain' | 'refactor' | etc.
   tags       String[]
-  variables  Json?     // [{ name: string, description: string }]
+  variables  Json? // [{ name: string, description: string }]
   pinned     Boolean   @default(false)
   usageCount Int       @default(0)
   deletedAt  DateTime?
 
-  userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([userId, category])
+  @@index([userId, deletedAt])
 }
