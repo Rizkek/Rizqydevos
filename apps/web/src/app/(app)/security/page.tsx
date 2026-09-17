@@ -19,10 +19,25 @@ import {
   AlertCircle,
   Server,
 } from 'lucide-react'
+import { fetchApi } from '@/lib/api'
 
 type Tab = 'secrets' | 'audit'
 
-const API = 'http://localhost:3001/api/v1'
+type Secret = {
+  id: string
+  name: string
+  key: string
+  category: string
+}
+
+type AuditLog = {
+  id: string
+  action: string
+  resource: string
+  resourceId?: string
+  metadata?: Record<string, unknown>
+  createdAt: string
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   'api-key': 'text-violet-400 bg-violet-400/10 border-violet-400/20',
@@ -40,7 +55,7 @@ const ACTION_COLORS: Record<string, string> = {
   LOGOUT: 'text-gray-400',
 }
 
-function AddSecretDialog({ onAdd }: { onAdd: (data: any) => void }) {
+function AddSecretDialog({ onAdd }: { onAdd: (data: Record<string, string>) => void }) {
   const [name, setName] = React.useState('')
   const [key, setKey] = React.useState('')
   const [value, setValue] = React.useState('')
@@ -85,7 +100,7 @@ function AddSecretDialog({ onAdd }: { onAdd: (data: any) => void }) {
   )
 }
 
-function SecretRow({ secret, onDelete }: { secret: any; onDelete: (id: string) => void }) {
+function SecretRow({ secret, onDelete }: { secret: Secret; onDelete: (id: string) => void }) {
   const [revealed, setRevealed] = React.useState(false)
   const [revealedValue, setRevealedValue] = React.useState<string | null>(null)
   const [revealing, setRevealing] = React.useState(false)
@@ -98,8 +113,7 @@ function SecretRow({ secret, onDelete }: { secret: any; onDelete: (id: string) =
     }
     setRevealing(true)
     try {
-      const res = await fetch(`${API}/secrets/${secret.id}/reveal`)
-      const data = await res.json()
+      const data = await fetchApi<{ value: string }>(`/secrets/${secret.id}/reveal`)
       setRevealedValue(data.value)
       setRevealed(true)
     } finally {
@@ -149,41 +163,34 @@ export default function SecurityPage() {
   const [tab, setTab] = React.useState<Tab>('secrets')
   const queryClient = useQueryClient()
 
-  const { data: secrets = [], isLoading: secretsLoading } = useQuery({
+  const { data: secrets = [], isLoading: secretsLoading } = useQuery<Secret[]>({
     queryKey: ['secrets'],
     queryFn: async () => {
-      const res = await fetch(`${API}/secrets`)
-      if (!res.ok) throw new Error('Failed to load secrets')
-      return res.json()
+      return fetchApi('/secrets')
     }
   })
 
-  const { data: auditLogs = [], isLoading: auditLoading } = useQuery({
+  const { data: auditLogs = [], isLoading: auditLoading } = useQuery<AuditLog[]>({
     queryKey: ['audit-log'],
     queryFn: async () => {
-      const res = await fetch(`${API}/monitoring/audit`)
-      if (!res.ok) throw new Error('Failed to load audit log')
-      return res.json()
+      return fetchApi('/monitoring/audit')
     },
     enabled: tab === 'audit',
   })
 
   const addMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await fetch(`${API}/secrets`, {
+      return fetchApi('/secrets', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
-      if (!res.ok) throw new Error('Failed to create secret')
-      return res.json()
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['secrets'] }),
   })
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await fetch(`${API}/secrets/${id}`, { method: 'DELETE' })
+      return fetchApi(`/secrets/${id}`, { method: 'DELETE' })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['secrets'] }),
   })

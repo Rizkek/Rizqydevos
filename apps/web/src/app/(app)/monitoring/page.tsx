@@ -18,11 +18,25 @@ import {
   Clock,
   Trash2,
 } from 'lucide-react'
+import { fetchApi } from '@/lib/api'
 
-const API = 'http://localhost:3001/api/v1'
+type SslResult = {
+  hostname: string
+  status: string
+  daysRemaining: number
+  issuer?: string
+}
+
+type HealthResult = {
+  url: string
+  online: boolean
+  latencyMs?: number
+  statusCode?: number
+  error?: string
+}
 
 const DEFAULT_HOSTS = ['google.com', 'github.com', 'vercel.com']
-const DEFAULT_URLS = ['http://localhost:3001/api/v1', 'https://github.com']
+const DEFAULT_URLS = ['https://github.com']
 
 function SslBadge({ status, days }: { status: string; days: number }) {
   if (status === 'VALID') return (
@@ -47,7 +61,7 @@ function SslBadge({ status, days }: { status: string; days: number }) {
   )
 }
 
-function HealthBadge({ online, latency }: { online: boolean; latency?: number }) {
+function HealthBadge({ online, latency }: { online: boolean; latency: number | undefined }) {
   if (online) return (
     <Badge className="gap-1 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 h-5 text-[10px]">
       <CheckCircle2 size={10} /> Online {latency ? `· ${latency}ms` : ''}
@@ -66,22 +80,18 @@ export default function MonitoringPage() {
   const [newHost, setNewHost] = React.useState('')
   const [newUrl, setNewUrl] = React.useState('')
 
-  const { data: sslResults = [], isLoading: sslLoading, refetch: refetchSsl } = useQuery({
+  const { data: sslResults = [], isLoading: sslLoading, refetch: refetchSsl } = useQuery<SslResult[]>({
     queryKey: ['ssl-batch', sslHosts],
     queryFn: async () => {
-      const res = await fetch(`${API}/monitoring/ssl/batch?hostnames=${sslHosts.join(',')}`)
-      if (!res.ok) throw new Error('SSL check failed')
-      return res.json()
+      return fetchApi(`/monitoring/ssl/batch?hostnames=${encodeURIComponent(sslHosts.join(','))}`)
     },
     refetchInterval: 60_000, // refetch every minute
   })
 
-  const { data: healthResults = [], isLoading: healthLoading, refetch: refetchHealth } = useQuery({
+  const { data: healthResults = [], isLoading: healthLoading, refetch: refetchHealth } = useQuery<HealthResult[]>({
     queryKey: ['health-batch', healthUrls],
     queryFn: async () => {
-      const res = await fetch(`${API}/monitoring/health/batch?urls=${encodeURIComponent(healthUrls.join(','))}`)
-      if (!res.ok) throw new Error('Health check failed')
-      return res.json()
+      return fetchApi(`/monitoring/health/batch?urls=${encodeURIComponent(healthUrls.join(','))}`)
     },
     refetchInterval: 30_000, // refetch every 30s
   })
@@ -98,9 +108,9 @@ export default function MonitoringPage() {
     setNewUrl('')
   }
 
-  const validSsl = (sslResults as any[]).filter(r => r.status === 'VALID').length
-  const warningSsl = (sslResults as any[]).filter(r => r.status === 'EXPIRING_SOON').length
-  const onlineHealth = (healthResults as any[]).filter(r => r.online).length
+  const validSsl = sslResults.filter(r => r.status === 'VALID').length
+  const warningSsl = sslResults.filter(r => r.status === 'EXPIRING_SOON').length
+  const onlineHealth = healthResults.filter(r => r.online).length
 
   return (
     <div className="flex-1 flex flex-col p-6 overflow-y-auto h-full">
@@ -156,7 +166,7 @@ export default function MonitoringPage() {
               <div className="flex items-center justify-center h-full gap-2 text-[var(--color-text-2)] text-[12px]">
                 <Loader2 size={14} className="animate-spin" /> Checking certs...
               </div>
-            ) : (sslResults as any[]).map((r: any) => (
+            ) : sslResults.map((r) => (
               <div key={r.hostname} className="flex items-center gap-3 p-2.5 rounded-lg bg-[var(--color-surface-2)]/50 border border-[var(--color-border-subtle)] group">
                 <Globe size={14} className="text-[var(--color-text-2)] shrink-0" />
                 <div className="flex-1 min-w-0">
@@ -197,7 +207,7 @@ export default function MonitoringPage() {
               <div className="flex items-center justify-center h-full gap-2 text-[var(--color-text-2)] text-[12px]">
                 <Loader2 size={14} className="animate-spin" /> Pinging endpoints...
               </div>
-            ) : (healthResults as any[]).map((r: any) => (
+            ) : healthResults.map((r) => (
               <div key={r.url} className="flex items-center gap-3 p-2.5 rounded-lg bg-[var(--color-surface-2)]/50 border border-[var(--color-border-subtle)] group">
                 <div className={`w-2 h-2 rounded-full shrink-0 ${r.online ? 'bg-emerald-400' : 'bg-red-400'}`} />
                 <div className="flex-1 min-w-0">

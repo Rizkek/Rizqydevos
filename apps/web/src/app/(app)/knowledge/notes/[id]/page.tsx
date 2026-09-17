@@ -8,6 +8,13 @@ import { Save, ArrowLeft, Loader2 } from 'lucide-react'
 import { useRouter, useParams } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { fetchApi } from '@/lib/api'
+
+type Note = {
+  id: string
+  title: string
+  content: string
+}
 
 export default function NoteEditorPage() {
   const router = useRouter()
@@ -21,13 +28,11 @@ export default function NoteEditorPage() {
 
   const queryClient = useQueryClient()
 
-  const { data: note, isLoading } = useQuery({
+  const { data: note, isLoading } = useQuery<Note | null>({
     queryKey: ['note', id],
     queryFn: async () => {
       if (isNew) return null
-      const res = await fetch(`http://localhost:3001/api/v1/knowledge/notes/${id}`)
-      if (!res.ok) throw new Error('Note not found')
-      return res.json()
+      return fetchApi(`/knowledge/notes/${id}`)
     },
     enabled: !isNew
   })
@@ -39,20 +44,12 @@ export default function NoteEditorPage() {
     }
   }, [note])
 
-  const saveMutation = useMutation({
+  const saveMutation = useMutation<Note>({
     mutationFn: async () => {
-      const url = isNew 
-        ? 'http://localhost:3001/api/v1/knowledge/notes'
-        : `http://localhost:3001/api/v1/knowledge/notes/${id}`
-      
-      const res = await fetch(url, {
+      return fetchApi(isNew ? '/knowledge/notes' : `/knowledge/notes/${id}`, {
         method: isNew ? 'POST' : 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, content })
       })
-
-      if (!res.ok) throw new Error('Failed to save note')
-      return res.json()
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['notes'] })

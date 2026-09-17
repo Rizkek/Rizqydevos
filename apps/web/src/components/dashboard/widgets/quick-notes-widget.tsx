@@ -5,6 +5,13 @@ import { WidgetCard } from '../widget-card'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { WidgetConfig } from '@/stores/widget.store'
 import { Loader2 } from 'lucide-react'
+import { fetchApi } from '@/lib/api'
+
+type Note = {
+  id: string
+  title: string
+  content: string
+}
 
 // Simple debounce hook for local state
 function useDebounce<T>(value: T, delay: number): T {
@@ -22,20 +29,16 @@ export function QuickNotesWidget({ config }: { config?: WidgetConfig }) {
   const [isTyping, setIsTyping] = React.useState(false)
   
   // Fetch the scratchpad note
-  const { data: notes, isLoading } = useQuery({
+  const { data: notes = [], isLoading } = useQuery<Note[]>({
     queryKey: ['notes'],
     queryFn: async () => {
-      const res = await fetch('http://localhost:3001/api/v1/workspace/notes', {
-        headers: { 'Content-Type': 'application/json' },
-      })
-      if (!res.ok) throw new Error('Failed to fetch notes')
-      return res.json()
+      return fetchApi('/workspace/notes')
     }
   })
 
   // Find the scratchpad note
   const scratchpadNote = React.useMemo(() => {
-    return notes?.find((n: any) => n.title === 'Scratchpad')
+    return notes.find((note) => note.title === 'Scratchpad')
   }, [notes])
 
   // Sync server data to local state when loaded
@@ -50,22 +53,16 @@ export function QuickNotesWidget({ config }: { config?: WidgetConfig }) {
     mutationFn: async (content: string) => {
       if (scratchpadNote) {
         // Update existing
-        const res = await fetch(`http://localhost:3001/api/v1/workspace/notes/${scratchpadNote.id}`, {
+        return fetchApi(`/workspace/notes/${scratchpadNote.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ content }),
         })
-        if (!res.ok) throw new Error('Failed to update note')
-        return res.json()
       } else {
         // Create new
-        const res = await fetch('http://localhost:3001/api/v1/workspace/notes', {
+        return fetchApi('/workspace/notes', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: 'Scratchpad', content }),
         })
-        if (!res.ok) throw new Error('Failed to create note')
-        return res.json()
       }
     },
     onSuccess: () => {

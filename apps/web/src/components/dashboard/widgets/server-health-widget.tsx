@@ -6,16 +6,20 @@ import { Badge } from '@/components/ui/badge'
 import { useQuery } from '@tanstack/react-query'
 import { Loader2, AlertCircle, Cloud } from 'lucide-react'
 import { WidgetConfig } from '@/stores/widget.store'
+import { fetchApi } from '@/lib/api'
+
+type Deployment = {
+  id: string
+  name: string
+  state: string
+  url: string
+}
 
 export function ServerHealthWidget({ config }: { config: WidgetConfig }) {
-  const { data: deployments, isLoading, error } = useQuery({
+  const { data: deployments = [], isLoading, error } = useQuery<Deployment[]>({
     queryKey: ['vercel-deployments'],
     queryFn: async () => {
-      const res = await fetch('http://localhost:3001/api/v1/integrations/vercel/deployments', {
-        headers: { 'Content-Type': 'application/json' },
-      })
-      if (!res.ok) throw new Error('Integration not configured')
-      return res.json()
+      return fetchApi('/integrations/vercel/deployments')
     }
   })
   return (
@@ -34,7 +38,7 @@ export function ServerHealthWidget({ config }: { config: WidgetConfig }) {
           <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)] gap-2 text-[12px]">
             <AlertCircle size={16} /> Not configured
           </div>
-        ) : deployments?.slice(0, 4).map((dep: any) => (
+        ) : deployments.slice(0, 4).map((dep) => (
           <div key={dep.id} className="flex flex-col p-2 rounded-md bg-[var(--color-surface-2)]/50 border border-[var(--color-border-subtle)] hover:bg-[var(--color-surface-2)] transition-colors cursor-pointer">
             <div className="flex items-center justify-between">
               <span className="text-[12px] font-medium text-[var(--color-text)] truncate pr-2">{dep.name}</span>
