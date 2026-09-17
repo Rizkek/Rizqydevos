@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: devos-api
+    runtime: node
+    rootDir: .
+    buildCommand: bun install && bunx turbo run build --filter=@devos/api
+    startCommand: bun --cwd apps/api run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BETTER_AUTH_SECRET
+        sync: false
+      - key: BETTER_AUTH_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
