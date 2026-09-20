@@ -13,7 +13,7 @@ import { Logger } from '@nestjs/common'
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.APP_URL ?? 'http://localhost:3000',
+    origin: process.env.APP_URL,
     credentials: true,
   },
   namespace: '/terminal',
@@ -60,7 +60,8 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
     if (!cookie) return false
 
     try {
-      const authUrl = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000'
+      const authUrl = process.env.BETTER_AUTH_URL
+      if (!authUrl) return false
       const response = await fetch(`${authUrl}/api/auth/get-session`, {
         headers: { cookie },
       })

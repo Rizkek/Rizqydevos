@@ -18,7 +18,7 @@ async function bootstrap() {
 
   // CORS — strict allowlist
   app.enableCors({
-    origin: process.env.APP_URL ?? 'http://localhost:3000',
+    origin: process.env.APP_URL,
     credentials: true,
   })
 

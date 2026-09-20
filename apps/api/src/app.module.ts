@@ -13,8 +13,10 @@ import { SecretsModule } from './modules/secrets/secrets.module'
 import { MonitoringModule } from './modules/monitoring/monitoring.module'
 import { AiModule } from './modules/ai/ai.module'
 import { DeveloperModule } from './modules/developer/developer.module'
+import { HealthController } from './health.controller'
 
 @Module({
+  controllers: [HealthController],
   imports: [
     // Environment variables — validated at startup
     ConfigModule.forRoot({

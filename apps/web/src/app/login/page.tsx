@@ -19,9 +19,29 @@ export default function LoginPage() {
   const [name, setName] = React.useState('')
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
+  const [confirmPassword, setConfirmPassword] = React.useState('')
+
+  const passwordRequirements = [
+    { label: 'At least 8 characters', valid: password.length >= 8 },
+    { label: 'At least one letter', valid: /[A-Za-z]/.test(password) },
+    { label: 'At least one number', valid: /\d/.test(password) },
+  ]
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!isLogin) {
+      const meetsRequirements = passwordRequirements.every(requirement => requirement.valid)
+      if (!meetsRequirements) {
+        toast.error('Password must be at least 8 characters and include a letter and a number.')
+        return
+      }
+      if (password !== confirmPassword) {
+        toast.error('Passwords do not match.')
+        return
+      }
+    }
+
     setLoading(true)
 
     try {
@@ -178,6 +198,29 @@ export default function LoginPage() {
                 className="h-11 bg-[var(--color-surface-2)]/50 border-[var(--color-border-subtle)] focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] transition-all rounded-xl shadow-inner"
               />
             </div>
+
+            {!isLogin && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[13px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider ml-1">Confirm Passphrase</label>
+                  <Input
+                    required
+                    type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    placeholder="Repeat your passphrase"
+                    className="h-11 bg-[var(--color-surface-2)]/50 border-[var(--color-border-subtle)] focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] transition-all rounded-xl shadow-inner"
+                  />
+                </div>
+                <ul className="space-y-1 text-xs text-[var(--color-text-muted)]" aria-label="Password requirements">
+                  {passwordRequirements.map(requirement => (
+                    <li key={requirement.label} className={requirement.valid ? 'text-green-400' : undefined}>
+                      {requirement.valid ? '✓' : '○'} {requirement.label}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
 
             <Button 
               type="submit" 

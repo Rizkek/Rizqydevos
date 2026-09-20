@@ -25,7 +25,10 @@ export class AuthGuard implements CanActivate {
 
     try {
       // Forward the cookie to the frontend's better-auth endpoint to verify the session
-      const authUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000'
+      const authUrl = process.env.BETTER_AUTH_URL
+      if (!authUrl) {
+        throw new Error('BETTER_AUTH_URL is not configured')
+      }
       this.logger.debug(`Verifying session against ${authUrl}/api/auth/get-session`)
       
       const response = await fetch(`${authUrl}/api/auth/get-session`, {

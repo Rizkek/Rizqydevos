@@ -2,9 +2,10 @@ services:
   - type: web
     name: devos-api
     runtime: node
-    rootDir: .
-    buildCommand: bun install && bunx turbo run build --filter=@devos/api
-    startCommand: bun --cwd apps/api run start
+    rootDir: apps/api
+    buildCommand: bun install && bun run build
+    startCommand: bun run start
+    healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
         value: production
