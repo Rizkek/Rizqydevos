@@ -10,6 +10,7 @@ import { Plus, Search, Code2, Copy, Bookmark, ExternalLink, Loader2, X, Trash2, 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchApi } from '@/lib/api'
 import { Textarea } from '@/components/ui/textarea'
+import { createQueryOptions, queryKeys } from '@/lib/query'
 
 type Snippet = {
   id: string
@@ -36,10 +37,9 @@ export default function KnowledgePage() {
 
   const queryClient = useQueryClient()
 
-  const { data: snippets = [], isLoading } = useQuery<Snippet[]>({
-    queryKey: ['snippets'],
-    queryFn: () => fetchApi('/knowledge/snippets')
-  })
+  const { data: snippets = [], isLoading } = useQuery<Snippet[]>(
+    createQueryOptions(queryKeys.snippets, () => fetchApi('/knowledge/snippets'))
+  )
 
   const saveMutation = useMutation({
     mutationFn: (data: Partial<Snippet>) => {
@@ -61,16 +61,16 @@ export default function KnowledgePage() {
         body: JSON.stringify(payload),
       })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['snippets'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.snippets })
       handleCloseForm()
     }
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => fetchApi(`/knowledge/snippets/${id}`, { method: 'DELETE' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['snippets'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.snippets })
       handleCloseForm()
     }
   })

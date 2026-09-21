@@ -18,6 +18,7 @@ export class VercelService {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      signal: AbortSignal.timeout(10_000),
     })
 
     if (!response.ok) {

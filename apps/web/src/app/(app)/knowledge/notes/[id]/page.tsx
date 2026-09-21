@@ -9,6 +9,7 @@ import { useRouter, useParams } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchApi } from '@/lib/api'
+import { createQueryOptions, queryKeys } from '@/lib/query'
 
 type Note = {
   id: string
@@ -29,11 +30,10 @@ export default function NoteEditorPage() {
   const queryClient = useQueryClient()
 
   const { data: note, isLoading } = useQuery<Note | null>({
-    queryKey: ['note', id],
-    queryFn: async () => {
+    ...createQueryOptions(queryKeys.note(id), async () => {
       if (isNew) return null
       return fetchApi(`/knowledge/notes/${id}`)
-    },
+    }),
     enabled: !isNew
   })
 
@@ -51,8 +51,8 @@ export default function NoteEditorPage() {
         body: JSON.stringify({ title, content })
       })
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['notes'] })
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.notes })
       if (isNew) {
         router.replace(`/knowledge/notes/${data.id}`)
       }

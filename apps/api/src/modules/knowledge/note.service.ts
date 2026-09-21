@@ -2,11 +2,17 @@ import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../database/prisma.service'
 import { CreateNoteDto, UpdateNoteDto } from './dto/note.dto'
 
+import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto'
+
 @Injectable()
 export class NoteService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(userId: string, filters?: { pinned?: boolean }) {
+  async findAll(
+    userId: string,
+    filters: { pinned?: boolean },
+    query: PaginationQueryDto,
+  ) {
     return this.prisma.note.findMany({
       where: {
         userId,
@@ -14,6 +20,8 @@ export class NoteService {
         ...(filters?.pinned !== undefined && { pinned: filters.pinned }),
       },
       orderBy: { createdAt: 'desc' },
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
     })
   }
 

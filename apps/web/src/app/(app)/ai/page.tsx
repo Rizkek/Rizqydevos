@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Plus, Search, Copy, Check, Sparkles, Folder, Loader2, Pin } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchApi } from '@/lib/api'
+import { createQueryOptions, queryKeys } from '@/lib/query'
 
 type AiPrompt = {
   id: string
@@ -35,10 +36,9 @@ export default function AiPage() {
   const queryClient = useQueryClient()
 
   // Fetch Prompts
-  const { data: prompts = [], isLoading } = useQuery<AiPrompt[]>({
-    queryKey: ['ai-prompts'],
-    queryFn: () => fetchApi('/ai/prompts')
-  })
+  const { data: prompts = [], isLoading } = useQuery<AiPrompt[]>(
+    createQueryOptions(queryKeys.aiPrompts, () => fetchApi('/ai/prompts'))
+  )
 
   // Create Mutation
   const createMutation = useMutation({
@@ -47,8 +47,8 @@ export default function AiPage() {
         method: 'POST',
         body: JSON.stringify(data)
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ai-prompts'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.aiPrompts })
       setShowCreate(false)
       setNewTitle('')
       setNewContent('')
@@ -63,10 +63,10 @@ export default function AiPage() {
       fetchApi(`/ai/prompts/${id}/usage`, { method: 'POST' }),
     onMutate: async (id) => {
       // Optimistic update
-      await queryClient.cancelQueries({ queryKey: ['ai-prompts'] })
-      const previous = queryClient.getQueryData<AiPrompt[]>(['ai-prompts'])
+      await queryClient.cancelQueries({ queryKey: queryKeys.aiPrompts })
+      const previous = queryClient.getQueryData<AiPrompt[]>(queryKeys.aiPrompts)
       if (previous) {
-        queryClient.setQueryData<AiPrompt[]>(['ai-prompts'], old => 
+        queryClient.setQueryData<AiPrompt[]>(queryKeys.aiPrompts, old => 
           old?.map(p => p.id === id ? { ...p, usageCount: p.usageCount + 1 } : p)
         )
       }
@@ -74,11 +74,11 @@ export default function AiPage() {
     },
     onError: (err, id, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['ai-prompts'], context.previous)
+        queryClient.setQueryData(queryKeys.aiPrompts, context.previous)
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['ai-prompts'] })
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.aiPrompts })
     }
   })
 

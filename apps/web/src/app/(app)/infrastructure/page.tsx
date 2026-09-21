@@ -6,24 +6,22 @@ import { useQuery } from '@tanstack/react-query'
 import { Loader2, Server, Cloud, AlertCircle, ArrowUpRight, Activity } from 'lucide-react'
 
 import { fetchApi } from '@/lib/api'
+import { createQueryOptions, queryKeys } from '@/lib/query'
 import Link from 'next/link'
 
 export default function InfrastructurePage() {
-  const { data: deployments, isLoading: isLoadingDeployments, error: vercelError } = useQuery({
-    queryKey: ['vercel-deployments'],
-    queryFn: async () => {
+  const { data: deployments, isLoading: isLoadingDeployments, error: vercelError } = useQuery(
+    createQueryOptions(queryKeys.vercelDeployments, async () => {
       try {
         return await fetchApi<any[]>('/integrations/vercel/deployments')
       } catch (err: any) {
         throw new Error(err.message || 'Failed to fetch Vercel deployments. Ensure you have configured your token.')
       }
-    },
-    retry: false
-  })
+    })
+  )
 
   const { data: healthChecks, isLoading: isLoadingHealth } = useQuery({
-    queryKey: ['health-checks'],
-    queryFn: () => fetchApi<any[]>('/monitoring/health/batch?urls=https://vercel.com,https://github.com,https://api.github.com,https://registry.npmjs.org'),
+    ...createQueryOptions(queryKeys.healthChecks, () => fetchApi<any[]>('/monitoring/health/batch?urls=https://vercel.com,https://github.com,https://api.github.com,https://registry.npmjs.org')),
     refetchInterval: 30000,
   })
 

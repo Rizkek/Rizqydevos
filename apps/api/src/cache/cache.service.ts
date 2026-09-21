@@ -20,9 +20,20 @@ export class CacheService {
   }
 
   async invalidatePattern(pattern: string): Promise<void> {
-    const keys = await this.redis.keys(pattern)
-    if (keys.length > 0) {
-      await this.redis.del(...keys)
+    let cursor = '0'
+    const keysToDelete: string[] = []
+
+    do {
+      const [newCursor, keys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100)
+      cursor = newCursor
+      keysToDelete.push(...keys)
+    } while (cursor !== '0')
+
+    if (keysToDelete.length > 0) {
+      // Delete in batches of 100 to avoid blocking
+      for (let i = 0; i < keysToDelete.length; i += 100) {
+        await this.redis.del(...keysToDelete.slice(i, i + 100))
+      }
     }
   }
 

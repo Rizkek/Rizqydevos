@@ -1,25 +1,15 @@
 'use client'
 
 import * as React from 'react'
-import dynamic from 'next/dynamic'
 import { Card } from '@/components/ui/card'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchApi } from '@/lib/api'
-import { Loader2, GitPullRequest, AlertCircle, Box, TerminalSquare, Play, Square, RefreshCcw, Trash2 } from 'lucide-react'
+import { createQueryOptions, queryKeys } from '@/lib/query'
+import { Loader2, GitPullRequest, AlertCircle, Box, Play, Square, RefreshCcw, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 
-const TerminalTab = dynamic(() => import('./terminal-tab'), {
-  ssr: false,
-  loading: () => (
-    <Card className="flex flex-col h-full bg-[#09090b] border-[var(--color-border-strong)] overflow-hidden">
-      <div className="h-full w-full p-2 flex items-center justify-center text-[var(--color-text-muted)]">
-        Loading terminal...
-      </div>
-    </Card>
-  ),
-})
 
 export default function DeveloperPage() {
   return (
@@ -33,7 +23,6 @@ export default function DeveloperPage() {
         <TabsList className="mb-4">
           <TabsTrigger value="github" className="gap-2"><GitPullRequest size={14} /> GitHub</TabsTrigger>
           <TabsTrigger value="docker" className="gap-2"><Box size={14} /> Docker</TabsTrigger>
-          <TabsTrigger value="terminal" className="gap-2"><TerminalSquare size={14} /> Terminal</TabsTrigger>
         </TabsList>
         
         <TabsContent value="github" className="flex-1 overflow-hidden">
@@ -42,26 +31,21 @@ export default function DeveloperPage() {
         <TabsContent value="docker" className="flex-1 overflow-hidden">
           <DockerTab />
         </TabsContent>
-        <TabsContent value="terminal" className="flex-1 overflow-hidden">
-          <TerminalTab />
-        </TabsContent>
       </Tabs>
     </div>
   )
 }
 
 function GithubTab() {
-  const { data: events, isLoading, error } = useQuery({
-    queryKey: ['github-activity'],
-    queryFn: async () => {
+  const { data: events, isLoading, error } = useQuery(
+    createQueryOptions(queryKeys.githubActivity, async () => {
       try {
         return await fetchApi<any[]>('/integrations/github/activity')
       } catch (err: any) {
         throw new Error(err.message || 'Failed to fetch GitHub activity. Ensure you have configured your token in Settings.')
       }
-    },
-    retry: false
-  })
+    })
+  )
 
   return (
     <Card className="flex flex-col h-full bg-[var(--color-surface)] border-[var(--color-border-subtle)] overflow-hidden">
@@ -107,10 +91,9 @@ function GithubTab() {
 
 function DockerTab() {
   const queryClient = useQueryClient()
-  const { data: containers, isLoading, error } = useQuery({
-    queryKey: ['docker-containers'],
-    queryFn: () => fetchApi<any[]>('/developer/docker/containers'),
-  })
+  const { data: containers, isLoading, error } = useQuery(
+    createQueryOptions(queryKeys.dockerContainers, () => fetchApi<any[]>('/developer/docker/containers'))
+  )
 
   const actionMutation = useMutation({
     mutationFn: ({ id, action }: { id: string, action: string }) => 
@@ -118,7 +101,9 @@ function DockerTab() {
         method: 'POST',
         body: JSON.stringify({ action }),
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['docker-containers'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dockerContainers })
+    }
   })
 
   return (
@@ -127,7 +112,7 @@ function DockerTab() {
         <h3 className="font-medium text-[var(--color-text)] flex items-center gap-2">
           Local Containers
         </h3>
-        <Button variant="ghost" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ['docker-containers'] })}>
+        <Button variant="ghost" size="sm" onClick={() => void queryClient.invalidateQueries({ queryKey: queryKeys.dockerContainers })}>
           <RefreshCcw size={14} className="mr-2" /> Refresh
         </Button>
       </div>

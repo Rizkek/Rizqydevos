@@ -10,7 +10,10 @@ import { UpdatePromptDto } from './dto/update-prompt.dto'
 export class PromptsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(userId: string) {
+  async findAll(
+    userId: string,
+    query: import('../../shared/dto/pagination-query.dto').PaginationQueryDto,
+  ) {
     return this.prisma.aiPrompt.findMany({
       where: {
         userId,
@@ -21,6 +24,8 @@ export class PromptsService {
         { usageCount: 'desc' },
         { createdAt: 'desc' },
       ],
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
     })
   }
 

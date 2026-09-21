@@ -22,10 +22,12 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - DATABASE_URL=postgresql://devos:devos_secret@postgres:5432/devos
+      - DATABASE_URL=${DATABASE_URL:?DATABASE_URL must be set}
       - REDIS_URL=redis://redis:6379
-      - APP_URL=http://localhost:3000
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - APP_URL=${APP_URL:?APP_URL must be set}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:?BETTER_AUTH_URL must be set}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?ENCRYPTION_KEY must be set}
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
       - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
     depends_on:
@@ -40,10 +42,8 @@ services:
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: devos
-      POSTGRES_PASSWORD: devos_secret
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       POSTGRES_DB: devos
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -57,8 +57,6 @@ services:
   redis:
     image: redis:7-alpine
     command: redis-server --appendonly yes
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -72,10 +70,8 @@ services:
   meilisearch:
     image: getmeili/meilisearch:latest
     environment:
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-devos_meili_key}
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?MEILI_MASTER_KEY must be set}
       MEILI_NO_ANALYTICS: "true"
-    ports:
-      - "7700:7700"
     volumes:
       - meili_data:/meili_data
     restart: unless-stopped

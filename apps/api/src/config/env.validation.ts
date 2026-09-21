@@ -31,7 +31,10 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
 
   // Encryption (for secrets manager)
-  ENCRYPTION_KEY: z.string().min(32).optional(),
+  ENCRYPTION_KEY: z.string().refine(
+    (value) => Buffer.byteLength(value, 'utf8') === 32,
+    'must be exactly 32 UTF-8 bytes',
+  ).optional(),
 }).refine(
   (data) => {
     if (data.NODE_ENV === 'production' && !data.ENCRYPTION_KEY) {

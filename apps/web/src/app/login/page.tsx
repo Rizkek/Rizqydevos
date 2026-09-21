@@ -5,21 +5,24 @@ import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { signIn, signUp } from '@/lib/auth-client'
-import { TerminalSquare, Loader2, Sparkles, MailCheck } from 'lucide-react'
+import { requestPasswordReset, signIn, signUp } from '@/lib/auth-client'
+import { TerminalSquare, Loader2, Sparkles, MailCheck, Eye, EyeOff, ArrowLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { toast } from 'sonner'
 
 export default function LoginPage() {
   const router = useRouter()
   const [isLogin, setIsLogin] = React.useState(true)
+  const [isForgotPassword, setIsForgotPassword] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
   const [verificationSent, setVerificationSent] = React.useState(false)
+  const [resetRequested, setResetRequested] = React.useState(false)
   
   const [name, setName] = React.useState('')
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [confirmPassword, setConfirmPassword] = React.useState('')
+  const [showPassword, setShowPassword] = React.useState(false)
 
   const passwordRequirements = [
     { label: 'At least 8 characters', valid: password.length >= 8 },
@@ -29,6 +32,24 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (isForgotPassword) {
+      setLoading(true)
+      try {
+        const { error } = await requestPasswordReset({ email, redirectTo: `${window.location.origin}/reset-password` })
+        if (error) {
+          toast.error(error.message || 'Unable to request password reset.')
+          return
+        }
+        setResetRequested(true)
+        toast.success('Check the server console for your password reset link.')
+      } catch {
+        toast.error('Unable to request password reset.')
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
 
     if (!isLogin) {
       const meetsRequirements = passwordRequirements.every(requirement => requirement.valid)
@@ -56,18 +77,43 @@ export default function LoginPage() {
       } else {
         const { error } = await signUp.email({ name, email, password })
         if (error) {
-          toast.error(error.message || 'Registration failed')
+          const message = error.message?.toLowerCase().includes('already')
+            ? 'An account with this email already exists. Please sign in or reset your password.'
+            : error.message || 'Registration failed'
+          toast.error(message)
           return
         }
         // Instead of automatically signing in, show verification prompt!
         setVerificationSent(true)
         toast.success("Identity created! Check your console/email to verify.")
       }
-    } catch (err: any) {
-      toast.error(err.message || 'An error occurred during authentication.')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred during authentication.')
     } finally {
       setLoading(false)
     }
+  }
+
+  if (resetRequested) {
+    return (
+      <AuthMessage title="Reset link requested" message="Check the server console for the reset link, then open it to choose a new password." onBack={() => setResetRequested(false)} />
+    )
+  }
+
+  if (isForgotPassword) {
+    return (
+      <AuthShell>
+        <div className="space-y-2 text-center">
+          <h1 className="text-2xl font-bold text-[var(--color-text)]">Reset your password</h1>
+          <p className="text-sm text-[var(--color-text-muted)]">Enter your account email to request a reset link.</p>
+        </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <Input required type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="dev@system.local" aria-label="Account email" />
+          <Button type="submit" disabled={loading}>{loading ? <Loader2 className="animate-spin" size={18} /> : 'Send reset link'}</Button>
+          <button type="button" onClick={() => setIsForgotPassword(false)} className="text-sm text-[var(--color-accent)] inline-flex items-center justify-center gap-2"><ArrowLeft size={16} /> Back to login</button>
+        </form>
+      </AuthShell>
+    )
   }
 
   // Verification Prompt UI
@@ -168,7 +214,7 @@ export default function LoginPage() {
               )}
             </AnimatePresence>
             
-            <div className="flex flex-col gap-1.5">
+              <div className="relative flex flex-col gap-1.5">
               <label className="text-[13px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider ml-1">Email Node</label>
               <Input 
                 required 
@@ -184,19 +230,24 @@ export default function LoginPage() {
               <div className="flex items-center justify-between">
                 <label className="text-[13px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider ml-1">Passphrase</label>
                 {isLogin && (
-                  <button type="button" className="text-[12px] font-medium text-[var(--color-accent)] hover:underline">
+                  <button type="button" onClick={() => setIsForgotPassword(true)} className="text-[12px] font-medium text-[var(--color-accent)] hover:underline">
                     Override?
                   </button>
                 )}
               </div>
-              <Input 
-                required 
-                type="password" 
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••••••" 
-                className="h-11 bg-[var(--color-surface-2)]/50 border-[var(--color-border-subtle)] focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] transition-all rounded-xl shadow-inner"
-              />
+              <div className="relative">
+                <Input 
+                  required 
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••••••" 
+                  className="h-11 bg-[var(--color-surface-2)]/50 border-[var(--color-border-subtle)] focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] transition-all rounded-xl shadow-inner pr-11"
+                />
+                <button type="button" onClick={() => setShowPassword(value => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]" aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             {!isLogin && (
@@ -205,7 +256,7 @@ export default function LoginPage() {
                   <label className="text-[13px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider ml-1">Confirm Passphrase</label>
                   <Input
                     required
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
                     placeholder="Repeat your passphrase"
@@ -254,6 +305,29 @@ export default function LoginPage() {
         </Card>
       </motion.div>
     </div>
+  )
+}
+
+function AuthShell({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="min-h-screen flex items-center justify-center p-4 bg-[var(--color-bg)]">
+      <Card className="relative z-10 w-full max-w-md p-8 space-y-6 bg-[var(--color-surface)] border-white/10">
+        {children}
+      </Card>
+    </main>
+  )
+}
+
+function AuthMessage({ title, message, onBack }: { title: string; message: string; onBack: () => void }) {
+  return (
+    <AuthShell>
+      <div className="space-y-3 text-center">
+        <MailCheck className="mx-auto text-green-400" size={32} />
+        <h1 className="text-2xl font-bold text-[var(--color-text)]">{title}</h1>
+        <p className="text-sm text-[var(--color-text-muted)]">{message}</p>
+        <Button type="button" onClick={onBack} className="w-full">Back to login</Button>
+      </div>
+    </AuthShell>
   )
 }
 

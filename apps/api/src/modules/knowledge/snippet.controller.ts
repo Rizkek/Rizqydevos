@@ -16,6 +16,7 @@ import { CreateSnippetDto } from './dto/create-snippet.dto'
 import { UpdateSnippetDto } from './dto/update-snippet.dto'
 import { AuthGuard } from '../../shared/guards/auth.guard'
 import { CurrentUser } from '../../shared/decorators/current-user.decorator'
+import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto'
 
 @Controller('knowledge/snippets')
 @UseGuards(AuthGuard)
@@ -25,13 +26,18 @@ export class SnippetController {
   @Get()
   findAll(
     @CurrentUser('id') userId: string,
+    @Query() pagination: PaginationQueryDto,
     @Query('language') language?: string,
     @Query('pinned') pinned?: string,
   ) {
-    return this.snippetService.findAll(userId, {
-      ...(language !== undefined && { language }),
-      ...(pinned !== undefined && { pinned: pinned === 'true' }),
-    })
+    return this.snippetService.findAll(
+      userId,
+      {
+        ...(language !== undefined && { language }),
+        ...(pinned !== undefined && { pinned: pinned === 'true' }),
+      },
+      pagination,
+    )
   }
 
   @Get(':id')

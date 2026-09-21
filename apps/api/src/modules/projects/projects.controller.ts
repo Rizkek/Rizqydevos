@@ -17,6 +17,7 @@ import { UpdateProjectDto } from './dto/update-project.dto'
 import { ProjectStatus } from '@prisma/client'
 import { AuthGuard } from '../../shared/guards/auth.guard'
 import { CurrentUser } from '../../shared/decorators/current-user.decorator'
+import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto'
 
 @Controller('projects')
 @UseGuards(AuthGuard)
@@ -26,11 +27,14 @@ export class ProjectsController {
   @Get()
   findAll(
     @CurrentUser('id') userId: string,
-    @Query('status') status?: ProjectStatus
+    @Query() pagination: PaginationQueryDto,
+    @Query('status') status?: ProjectStatus,
   ) {
-    return this.projectsService.findAll(userId, {
-      ...(status !== undefined && { status }),
-    })
+    return this.projectsService.findAll(
+      userId,
+      { ...(status !== undefined && { status }) },
+      pagination,
+    )
   }
 
   @Get(':id')

@@ -17,15 +17,11 @@ Reference: [Principles](../vision/03-principles.md) | [Frontend Architecture](./
 | Language | TypeScript (strict mode) | Consistent with frontend |
 | ORM | Prisma 6 | Type-safe queries, great DX, migration tooling |
 | Database | PostgreSQL 17 | Reliable, feature-rich, excellent JSON support |
-| Cache | Redis 7 | Session, caching, rate limiting, queue backend |
-| Queue | BullMQ | Redis-backed job queue, robust retry logic |
+| Cache | Redis 7 | Session, caching, rate limiting |
 | Auth | Better Auth | Modern auth library, passkey + OAuth support |
 | Validation | class-validator + class-transformer | NestJS-native validation |
-| API Style | REST (primary) + tRPC (BFF layer) | REST for simplicity, tRPC for type-safe frontend |
-| Real-time | Socket.IO (via NestJS WebSockets) | Notifications, live updates |
+| API Style | REST | REST for simplicity |
 | File Storage | S3-compatible (Cloudflare R2) | Cheap, no egress, edge-distributed |
-| Email | Resend | Simple API, reliable deliverability |
-| Search | Meilisearch | Fast, typo-tolerant, self-hostable |
 
 ---
 
@@ -43,10 +39,7 @@ Guard (Auth + RBAC)
 Controller (route handling only)
   │
   ▼
-Service (business logic)
-  │
-  ▼
-Repository (data access)
+Service (business logic & data access)
   │
   ▼
 Prisma ORM
@@ -60,8 +53,7 @@ Each layer has a strict responsibility:
 | Layer | Responsibility | Must NOT |
 |-------|---------------|---------|
 | **Controller** | Parse request, call service, return response | Contain business logic |
-| **Service** | Business logic, orchestration | Access DB directly (use repository) |
-| **Repository** | Data access, Prisma queries | Contain business logic |
+| **Service** | Business logic, orchestration, Prisma queries | Parse HTTP requests directly |
 | **DTO** | Input validation and transformation | Contain logic |
 | **Entity** | Database model mapping | Be exposed directly to API |
 
@@ -92,7 +84,6 @@ src/
 │   │   ├── todo/
 │   │   │   ├── todo.controller.ts
 │   │   │   ├── todo.service.ts
-│   │   │   ├── todo.repository.ts
 │   │   │   └── dto/
 │   │   ├── notes/
 │   │   ├── kanban/
@@ -124,6 +115,10 @@ src/
 │   │   ├── logging.interceptor.ts
 │   │   ├── response-transform.interceptor.ts
 │   │   └── cache.interceptor.ts
+│   ├── middleware/               ← Middleware components
+│   │   └── correlation-id.middleware.ts
+│   ├── logger/                   ← Custom logging setup
+│   │   └── pino-logger.service.ts
 │   ├── pipes/                    ← Validation pipes
 │   │   └── validation.pipe.ts
 │   └── types/                    ← Shared TypeScript types
@@ -137,12 +132,6 @@ src/
 ├── cache/                        ← Redis configuration
 │   ├── cache.service.ts
 │   └── cache.module.ts
-│
-├── queue/                        ← BullMQ job queues
-│   ├── queue.module.ts
-│   └── processors/
-│       ├── notification.processor.ts
-│       └── ai.processor.ts
 │
 ├── config/                       ← App configuration
 │   ├── app.config.ts
@@ -254,62 +243,31 @@ export class CreateTodoDto {
 @Injectable()
 export class TodoService {
   constructor(
-    private readonly todoRepository: TodoRepository,
+    private readonly prisma: PrismaService,
     private readonly cacheService: CacheService,
   ) {}
 
-  async findAll(userId: string, query: PaginationQuery): Promise<PaginatedResult<Todo>> {
+  async findAll(userId: string, query: PaginationQueryDto) {
     const cacheKey = `todos:${userId}:${JSON.stringify(query)}`
-    const cached = await this.cacheService.get<PaginatedResult<Todo>>(cacheKey)
+    const cached = await this.cacheService.get<any>(cacheKey)
     if (cached) return cached
 
-    const result = await this.todoRepository.findMany(userId, query)
+    const result = await this.prisma.todo.findMany({
+      where: { userId, deletedAt: null },
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
+    })
+    
     await this.cacheService.set(cacheKey, result, 60) // 60s TTL
     return result
   }
 
-  async create(userId: string, dto: CreateTodoDto): Promise<Todo> {
-    const todo = await this.todoRepository.create(userId, dto)
-    await this.cacheService.invalidatePattern(`todos:${userId}:*`)
-    return todo
-  }
-}
-```
-
----
-
-## Repository Layer Convention
-
-```typescript
-// workspace/todo/todo.repository.ts
-@Injectable()
-export class TodoRepository {
-  constructor(private readonly prisma: PrismaService) {}
-
-  async findMany(userId: string, query: PaginationQuery): Promise<PaginatedResult<Todo>> {
-    const { page = 1, limit = 20, sort = 'createdAt', order = 'desc' } = query
-    const skip = (page - 1) * limit
-
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.todo.findMany({
-        where: { userId },
-        skip,
-        take: limit,
-        orderBy: { [sort]: order },
-      }),
-      this.prisma.todo.count({ where: { userId } }),
-    ])
-
-    return {
-      items,
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
-    }
-  }
-
-  async create(userId: string, dto: CreateTodoDto): Promise<Todo> {
-    return this.prisma.todo.create({
+  async create(userId: string, dto: CreateTodoDto) {
+    const todo = await this.prisma.todo.create({
       data: { ...dto, userId },
     })
+    await this.cacheService.invalidatePattern(`todos:${userId}:*`)
+    return todo
   }
 }
 ```
@@ -369,34 +327,10 @@ export class TodoController {
 | AI model list | 1 hour | Manual |
 
 Cache keys follow the pattern: `[module]:[userId]:[resource]:[params]`
-
----
-
-## Queue Architecture
-
-BullMQ queues for background processing:
-
-| Queue | Jobs | Priority |
-|-------|------|----------|
-| `notifications` | Email, in-app alerts | High |
-| `ai` | AI completions, RAG indexing | Medium |
-| `sync` | GitHub sync, Docker poll | Low |
-| `cleanup` | Log rotation, temp file cleanup | Low |
-
-```typescript
-// queue/processors/ai.processor.ts
-@Processor('ai')
-export class AiProcessor {
-  @Process('rag-index')
-  async indexDocument(job: Job<{ documentId: string }>) {
-    // Background RAG indexing without blocking the HTTP request
-  }
-}
-```
-
----
-
-## Database Design Principles
+ 
+ ---
+ 
+ ## Database Design Principles
 
 1. **Every table has**: `id` (cuid2), `createdAt`, `updatedAt`
 2. **Soft deletes**: sensitive data uses `deletedAt` nullable timestamp

@@ -14,10 +14,12 @@ export class SecretService {
     private readonly auditService: AuditService,
   ) {}
 
-  async findAll(userId: string) {
+  async findAll(userId: string, query: import('../../shared/dto/pagination-query.dto').PaginationQueryDto) {
     const secrets = await this.prisma.secret.findMany({
       where: { userId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
     })
 
     // Never return the real value in list view

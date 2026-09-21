@@ -20,6 +20,7 @@ import {
   Server,
 } from 'lucide-react'
 import { fetchApi } from '@/lib/api'
+import { createQueryOptions, queryKeys } from '@/lib/query'
 
 type Tab = 'secrets' | 'audit'
 
@@ -163,20 +164,13 @@ export default function SecurityPage() {
   const [tab, setTab] = React.useState<Tab>('secrets')
   const queryClient = useQueryClient()
 
-  const { data: secrets = [], isLoading: secretsLoading } = useQuery<Secret[]>({
-    queryKey: ['secrets'],
-    queryFn: async () => {
-      return fetchApi('/secrets')
-    }
-  })
+  const { data: secrets = [], isLoading: secretsLoading } = useQuery<Secret[]>(
+    createQueryOptions(queryKeys.secrets, async () => fetchApi('/secrets'))
+  )
 
-  const { data: auditLogs = [], isLoading: auditLoading } = useQuery<AuditLog[]>({
-    queryKey: ['audit-log'],
-    queryFn: async () => {
-      return fetchApi('/monitoring/audit')
-    },
-    enabled: tab === 'audit',
-  })
+  const { data: auditLogs = [], isLoading: auditLoading } = useQuery<AuditLog[]>(
+    createQueryOptions(queryKeys.auditLogs, async () => fetchApi('/monitoring/audit'))
+  )
 
   const addMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -185,14 +179,18 @@ export default function SecurityPage() {
         body: JSON.stringify(data),
       })
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['secrets'] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.secrets })
+    },
   })
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       return fetchApi(`/secrets/${id}`, { method: 'DELETE' })
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['secrets'] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.secrets })
+    },
   })
 
   return (

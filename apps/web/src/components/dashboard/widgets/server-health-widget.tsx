@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Loader2, AlertCircle, Cloud } from 'lucide-react'
 import { WidgetConfig } from '@/stores/widget.store'
 import { fetchApi } from '@/lib/api'
+import { createQueryOptions, queryKeys } from '@/lib/query'
 
 type Deployment = {
   id: string
@@ -16,12 +17,9 @@ type Deployment = {
 }
 
 export function ServerHealthWidget({ config }: { config: WidgetConfig }) {
-  const { data: deployments = [], isLoading, error } = useQuery<Deployment[]>({
-    queryKey: ['vercel-deployments'],
-    queryFn: async () => {
-      return fetchApi('/integrations/vercel/deployments')
-    }
-  })
+  const { data: deployments = [], isLoading, error } = useQuery<Deployment[]>(
+    createQueryOptions(queryKeys.vercelDeployments, async () => fetchApi('/integrations/vercel/deployments'))
+  )
   return (
     <WidgetCard
       id="w-server-health"

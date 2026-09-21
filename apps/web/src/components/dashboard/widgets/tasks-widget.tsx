@@ -7,16 +7,14 @@ import { Button } from '@/components/ui/button'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { WidgetConfig } from '@/stores/widget.store'
 import { fetchApi } from '@/lib/api'
+import { createQueryOptions, queryKeys } from '@/lib/query'
 
 export function TasksWidget({ config }: { config?: WidgetConfig }) {
   const queryClient = useQueryClient()
 
-  const { data: tasks, isLoading } = useQuery({
-    queryKey: ['todos'],
-    queryFn: async () => {
-      return fetchApi<any[]>('/workspace/todos')
-    }
-  })
+  const { data: tasks, isLoading } = useQuery(
+    createQueryOptions(queryKeys.todos, () => fetchApi<any[]>('/workspace/todos'))
+  )
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
@@ -25,8 +23,8 @@ export function TasksWidget({ config }: { config?: WidgetConfig }) {
         body: JSON.stringify({ completed }),
       })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['todos'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.todos })
     }
   })
 

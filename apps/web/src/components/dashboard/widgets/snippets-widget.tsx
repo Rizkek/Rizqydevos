@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { useQuery } from '@tanstack/react-query'
 import { WidgetConfig } from '@/stores/widget.store'
 import { fetchApi } from '@/lib/api'
+import { createQueryOptions, queryKeys } from '@/lib/query'
 
 type Snippet = {
   id: string
@@ -16,12 +17,9 @@ type Snippet = {
 }
 
 export function SnippetsWidget({ config }: { config?: WidgetConfig }) {
-  const { data: snippets = [], isLoading } = useQuery<Snippet[]>({
-    queryKey: ['snippets'],
-    queryFn: async () => {
-      return fetchApi('/knowledge/snippets')
-    }
-  })
+  const { data: snippets = [], isLoading } = useQuery<Snippet[]>(
+    createQueryOptions(queryKeys.snippets, async () => fetchApi('/knowledge/snippets'))
+  )
 
   return (
     <WidgetCard

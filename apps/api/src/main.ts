@@ -4,13 +4,17 @@ import { ValidationPipe } from '@nestjs/common'
 import { AppModule } from './app.module'
 import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
 import { ResponseTransformInterceptor } from './shared/interceptors/response-transform.interceptor'
+import { PinoLoggerService } from './shared/logger/pino-logger.service'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: ['error', 'warn', 'log'],
+    bufferLogs: true,
   })
+
+  const logger = await app.resolve(PinoLoggerService)
+  app.useLogger(logger)
 
   // Security headers
   app.use(helmet())

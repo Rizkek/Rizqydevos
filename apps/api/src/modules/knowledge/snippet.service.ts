@@ -2,12 +2,17 @@ import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../database/prisma.service'
 import { CreateSnippetDto } from './dto/create-snippet.dto'
 import { UpdateSnippetDto } from './dto/update-snippet.dto'
+import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto'
 
 @Injectable()
 export class SnippetService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(userId: string, filters: { language?: string; pinned?: boolean }) {
+  async findAll(
+    userId: string,
+    filters: { language?: string; pinned?: boolean },
+    query: PaginationQueryDto,
+  ) {
     return this.prisma.snippet.findMany({
       where: {
         userId,
@@ -16,6 +21,8 @@ export class SnippetService {
         ...(filters.pinned !== undefined && { pinned: filters.pinned }),
       },
       orderBy: [{ pinned: 'desc' }, { createdAt: 'desc' }],
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
     })
   }
 

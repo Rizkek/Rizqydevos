@@ -7,15 +7,10 @@ export class SettingsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findOrCreate(userId: string) {
-    const existing = await this.prisma.userSettings.findUnique({
+    return this.prisma.userSettings.upsert({
       where: { userId },
-    })
-
-    if (existing) return existing
-
-    // Auto-create default settings on first access
-    return this.prisma.userSettings.create({
-      data: { userId },
+      create: { userId },
+      update: {},
     })
   }
 

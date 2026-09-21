@@ -8,36 +8,27 @@ export class IntegrationsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async upsert(userId: string, dto: CreateIntegrationDto) {
-    const existing = await this.prisma.integration.findUnique({
+    const encryptedAccessToken = dto.accessToken ? encrypt(dto.accessToken) : undefined
+    const encryptedRefreshToken = dto.refreshToken ? encrypt(dto.refreshToken) : undefined
+
+    return this.prisma.integration.upsert({
       where: {
         userId_provider: {
           userId,
           provider: dto.provider!,
         },
       },
-    })
-
-    const encryptedAccessToken = dto.accessToken ? encrypt(dto.accessToken) : undefined
-    const encryptedRefreshToken = dto.refreshToken ? encrypt(dto.refreshToken) : undefined
-
-    if (existing) {
-      return this.prisma.integration.update({
-        where: { id: existing.id },
-        data: {
-          ...(encryptedAccessToken && { accessToken: encryptedAccessToken }),
-          ...(encryptedRefreshToken && { refreshToken: encryptedRefreshToken }),
-          ...(dto.metadata && { metadata: dto.metadata }),
-        },
-      })
-    }
-
-    return this.prisma.integration.create({
-      data: {
+      create: {
         userId,
         provider: dto.provider!,
         accessToken: encryptedAccessToken ?? null,
         refreshToken: encryptedRefreshToken ?? null,
         metadata: dto.metadata ?? {},
+      },
+      update: {
+        ...(encryptedAccessToken && { accessToken: encryptedAccessToken }),
+        ...(encryptedRefreshToken && { refreshToken: encryptedRefreshToken }),
+        ...(dto.metadata && { metadata: dto.metadata }),
       },
     })
   }

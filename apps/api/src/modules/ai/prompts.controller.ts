@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -15,6 +16,7 @@ import { CreatePromptDto } from './dto/create-prompt.dto'
 import { UpdatePromptDto } from './dto/update-prompt.dto'
 import { AuthGuard } from '../../shared/guards/auth.guard'
 import { CurrentUser } from '../../shared/decorators/current-user.decorator'
+import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto'
 
 @Controller('ai/prompts')
 @UseGuards(AuthGuard)
@@ -22,8 +24,8 @@ export class PromptsController {
   constructor(private readonly promptsService: PromptsService) {}
 
   @Get()
-  findAll(@CurrentUser('id') userId: string) {
-    return this.promptsService.findAll(userId)
+  findAll(@Query() pagination: PaginationQueryDto, @CurrentUser('id') userId: string) {
+    return this.promptsService.findAll(userId, pagination)
   }
 
   @Get(':id')

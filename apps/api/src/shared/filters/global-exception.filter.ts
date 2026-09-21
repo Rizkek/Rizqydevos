@@ -79,6 +79,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       error: {
         code,
         message,
+        correlationId: (request as any).correlationId,
         ...(details && { details }),
       },
     })

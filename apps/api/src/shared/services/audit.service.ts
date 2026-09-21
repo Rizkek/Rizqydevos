@@ -4,6 +4,8 @@ import { Prisma } from '@prisma/client'
 
 type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'REVEAL_SECRET' | 'LOGIN' | 'LOGOUT'
 
+import { PaginationQueryDto } from '../dto/pagination-query.dto'
+
 @Injectable()
 export class AuditService {
   private readonly logger = new Logger(AuditService.name)
@@ -33,10 +35,13 @@ export class AuditService {
     }
   }
 
-  async findAll(userId: string, limit = 50) {
+  async findAll(userId: string, query?: PaginationQueryDto) {
+    const limit = query?.limit ?? 50
+    const page = query?.page ?? 1
     return this.prisma.auditLog.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
       take: limit,
     })
   }

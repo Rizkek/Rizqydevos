@@ -4,6 +4,7 @@ import { AuditService } from '../../shared/services/audit.service'
 import { CreateProjectDto } from './dto/create-project.dto'
 import { UpdateProjectDto } from './dto/update-project.dto'
 import { ProjectStatus } from '@prisma/client'
+import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto'
 
 @Injectable()
 export class ProjectsService {
@@ -12,7 +13,11 @@ export class ProjectsService {
     private readonly auditService: AuditService,
   ) {}
 
-  async findAll(userId: string, filters: { status?: ProjectStatus }) {
+  async findAll(
+    userId: string,
+    filters: { status?: ProjectStatus },
+    query: PaginationQueryDto,
+  ) {
     return this.prisma.project.findMany({
       where: {
         userId,
@@ -20,6 +25,8 @@ export class ProjectsService {
         ...(filters.status && { status: filters.status }),
       },
       orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
     })
   }
 

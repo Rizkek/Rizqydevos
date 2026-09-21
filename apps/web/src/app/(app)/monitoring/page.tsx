@@ -19,6 +19,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { fetchApi } from '@/lib/api'
+import { createQueryOptions, queryKeys } from '@/lib/query'
 
 type SslResult = {
   hostname: string
@@ -81,18 +82,16 @@ export default function MonitoringPage() {
   const [newUrl, setNewUrl] = React.useState('')
 
   const { data: sslResults = [], isLoading: sslLoading, refetch: refetchSsl } = useQuery<SslResult[]>({
-    queryKey: ['ssl-batch', sslHosts],
-    queryFn: async () => {
+    ...createQueryOptions(queryKeys.sslBatch(sslHosts), async () => {
       return fetchApi(`/monitoring/ssl/batch?hostnames=${encodeURIComponent(sslHosts.join(','))}`)
-    },
+    }),
     refetchInterval: 60_000, // refetch every minute
   })
 
   const { data: healthResults = [], isLoading: healthLoading, refetch: refetchHealth } = useQuery<HealthResult[]>({
-    queryKey: ['health-batch', healthUrls],
-    queryFn: async () => {
+    ...createQueryOptions(queryKeys.healthBatch(healthUrls), async () => {
       return fetchApi(`/monitoring/health/batch?urls=${encodeURIComponent(healthUrls.join(','))}`)
-    },
+    }),
     refetchInterval: 30_000, // refetch every 30s
   })
 

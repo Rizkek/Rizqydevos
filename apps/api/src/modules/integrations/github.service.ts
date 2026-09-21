@@ -15,7 +15,12 @@ export class GithubService {
     
     // Dynamic import to bypass ESM vs CommonJS static import restriction
     const { Octokit } = await import('@octokit/rest')
-    return new Octokit({ auth: token })
+    return new Octokit({
+      auth: token,
+      request: {
+        timeout: 10_000,
+      },
+    })
   }
 
   async getActivityFeed(userId: string) {

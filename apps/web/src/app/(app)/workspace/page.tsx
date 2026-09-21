@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Plus, CheckCircle2, Circle, Search, Clock, Tag, Loader2, Save } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchApi } from '@/lib/api'
+import { createQueryOptions, queryKeys } from '@/lib/query'
 
 type Todo = {
   id: string
@@ -31,15 +32,13 @@ export default function WorkspacePage() {
   const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
   // Fetch Todos from Backend
-  const { data: todos = [], isLoading } = useQuery<Todo[]>({
-    queryKey: ['todos'],
-    queryFn: () => fetchApi('/workspace/todos')
-  })
+  const { data: todos = [], isLoading } = useQuery<Todo[]>(
+    createQueryOptions(queryKeys.todos, () => fetchApi('/workspace/todos'))
+  )
 
   // Fetch Notes for Scratchpad
   useQuery({
-    queryKey: ['scratchpad'],
-    queryFn: async () => {
+    ...createQueryOptions(queryKeys.scratchpad, async () => {
       const notes = await fetchApi<any[]>('/workspace/notes')
       const scratch = notes.find(n => n.title === 'Scratchpad') || notes[0]
       if (scratch) {
@@ -47,7 +46,7 @@ export default function WorkspacePage() {
         setNoteContent(scratch.content)
       }
       return notes
-    },
+    }),
     staleTime: Infinity,
   })
 
@@ -98,8 +97,8 @@ export default function WorkspacePage() {
         method: 'PATCH',
         body: JSON.stringify({ completed })
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['todos'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.todos })
     }
   })
 
@@ -110,8 +109,8 @@ export default function WorkspacePage() {
         method: 'POST',
         body: JSON.stringify({ title, priority: 'MEDIUM', tags: [] })
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['todos'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.todos })
       setNewTaskTitle('')
     }
   })

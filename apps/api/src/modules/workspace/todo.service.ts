@@ -7,6 +7,7 @@ import { PrismaService } from '../../database/prisma.service'
 import { CreateTodoDto } from './dto/create-todo.dto'
 import { UpdateTodoDto } from './dto/update-todo.dto'
 import { Prisma } from '@prisma/client'
+import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto'
 
 @Injectable()
 export class TodoService {
@@ -15,6 +16,7 @@ export class TodoService {
   async findAll(
     userId: string,
     filters: { completed?: boolean; priority?: string },
+    query: PaginationQueryDto,
   ) {
     const where: Prisma.TodoWhereInput = {
       userId,
@@ -32,6 +34,8 @@ export class TodoService {
     return this.prisma.todo.findMany({
       where,
       orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
     })
   }
 

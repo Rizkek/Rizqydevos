@@ -11,6 +11,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchApi } from '@/lib/api'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
+import { createQueryOptions, queryKeys } from '@/lib/query'
 
 const themes: { id: Theme; label: string }[] = [
   { id: 'dark', label: 'Dark' },
@@ -34,10 +35,9 @@ export default function SettingsPage() {
   const [githubToken, setGithubToken] = React.useState('')
   const [vercelToken, setVercelToken] = React.useState('')
 
-  const { data: integrations = [], isLoading: isLoadingIntegrations } = useQuery({
-    queryKey: ['integrations'],
-    queryFn: () => fetchApi<any[]>('/integrations')
-  })
+  const { data: integrations = [], isLoading: isLoadingIntegrations } = useQuery(
+    createQueryOptions(queryKeys.integrations, () => fetchApi<any[]>('/integrations'))
+  )
 
   const saveIntegration = useMutation({
     mutationFn: ({ provider, accessToken }: { provider: string, accessToken: string }) => 
@@ -45,8 +45,8 @@ export default function SettingsPage() {
         method: 'POST',
         body: JSON.stringify({ accessToken })
       }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['integrations'] })
+    onSuccess: async (_, variables) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.integrations })
       setGithubToken('')
       setVercelToken('')
       toast.success(`Successfully connected to ${variables.provider}`)
@@ -59,8 +59,8 @@ export default function SettingsPage() {
   const removeIntegration = useMutation({
     mutationFn: (provider: string) => 
       fetchApi(`/integrations/${provider}`, { method: 'DELETE' }),
-    onSuccess: (_, provider) => {
-      queryClient.invalidateQueries({ queryKey: ['integrations'] })
+    onSuccess: async (_, provider) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.integrations })
       toast.success(`Successfully disconnected ${provider}`)
     },
     onError: (error: any, provider) => {

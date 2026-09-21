@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { fetchApi } from '@/lib/api'
+import { createQueryOptions, queryKeys } from '@/lib/query'
 
 type Project = {
   id: string
@@ -35,10 +36,9 @@ export default function ProjectsPage() {
   const [deployUrl, setDeployUrl] = React.useState('')
   const [techStackStr, setTechStackStr] = React.useState('')
 
-  const { data: projects = [], isLoading } = useQuery<Project[]>({
-    queryKey: ['projects'],
-    queryFn: () => fetchApi('/projects')
-  })
+  const { data: projects = [], isLoading } = useQuery<Project[]>(
+    createQueryOptions(queryKeys.projects, () => fetchApi('/projects'))
+  )
 
   const saveMutation = useMutation({
     mutationFn: (data: Partial<Project>) => {
@@ -57,16 +57,16 @@ export default function ProjectsPage() {
         body: JSON.stringify(payload),
       })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.projects })
       handleCloseForm()
     }
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => fetchApi(`/projects/${id}`, { method: 'DELETE' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.projects })
       handleCloseForm()
     }
   })

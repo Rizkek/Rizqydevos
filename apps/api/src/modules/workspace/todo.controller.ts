@@ -17,6 +17,7 @@ import { CreateTodoDto } from './dto/create-todo.dto'
 import { UpdateTodoDto } from './dto/update-todo.dto'
 import { AuthGuard } from '../../shared/guards/auth.guard'
 import { CurrentUser } from '../../shared/decorators/current-user.decorator'
+import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto'
 
 @Controller('workspace/todos')
 @UseGuards(AuthGuard)
@@ -26,6 +27,7 @@ export class TodoController {
   @Get()
   findAll(
     @CurrentUser('id') userId: string,
+    @Query() pagination: PaginationQueryDto,
     @Query('completed') completed?: string,
     @Query('priority') priority?: string,
   ) {
@@ -33,7 +35,7 @@ export class TodoController {
       ...(completed !== undefined && { completed: completed === 'true' }),
       ...(priority !== undefined && { priority }),
     }
-    return this.todoService.findAll(userId, filters)
+    return this.todoService.findAll(userId, filters, pagination)
   }
 
   @Get(':id')

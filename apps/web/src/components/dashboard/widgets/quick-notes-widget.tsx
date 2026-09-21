@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { WidgetConfig } from '@/stores/widget.store'
 import { Loader2 } from 'lucide-react'
 import { fetchApi } from '@/lib/api'
+import { createQueryOptions, queryKeys } from '@/lib/query'
 
 type Note = {
   id: string
@@ -29,12 +30,9 @@ export function QuickNotesWidget({ config }: { config?: WidgetConfig }) {
   const [isTyping, setIsTyping] = React.useState(false)
   
   // Fetch the scratchpad note
-  const { data: notes = [], isLoading } = useQuery<Note[]>({
-    queryKey: ['notes'],
-    queryFn: async () => {
-      return fetchApi('/workspace/notes')
-    }
-  })
+  const { data: notes = [], isLoading } = useQuery<Note[]>(
+    createQueryOptions(queryKeys.notes, async () => fetchApi('/workspace/notes'))
+  )
 
   // Find the scratchpad note
   const scratchpadNote = React.useMemo(() => {
@@ -65,8 +63,8 @@ export function QuickNotesWidget({ config }: { config?: WidgetConfig }) {
         })
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notes'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.notes })
       setIsTyping(false)
     }
   })

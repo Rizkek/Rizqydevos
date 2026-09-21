@@ -16,6 +16,8 @@ import { CreateNoteDto, UpdateNoteDto } from './dto/note.dto'
 import { AuthGuard } from '../../shared/guards/auth.guard'
 import { CurrentUser } from '../../shared/decorators/current-user.decorator'
 
+import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto'
+
 @Controller('knowledge/notes')
 @UseGuards(AuthGuard)
 export class NoteController {
@@ -24,11 +26,14 @@ export class NoteController {
   @Get()
   findAll(
     @CurrentUser('id') userId: string,
+    @Query() pagination: PaginationQueryDto,
     @Query('pinned') pinned?: string,
   ) {
-    return this.noteService.findAll(userId, {
-      ...(pinned !== undefined && { pinned: pinned === 'true' }),
-    })
+    return this.noteService.findAll(
+      userId,
+      { ...(pinned !== undefined && { pinned: pinned === 'true' }) },
+      pagination,
+    )
   }
 
   @Get(':id')

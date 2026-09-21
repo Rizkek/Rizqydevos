@@ -1,15 +1,15 @@
 import * as crypto from 'crypto'
 
 const ALGORITHM = 'aes-256-gcm'
+const KEY_LENGTH_BYTES = 32
 
-// Secret key should be 32 bytes
-const getSecretKey = () => {
-  const key = process.env.ENCRYPTION_KEY || 'devos-super-secret-key-must-be-32'
-  if (key.length !== 32) {
-    // Pad or truncate to 32 bytes for dev safely
-    return Buffer.from(key.padEnd(32, '0').slice(0, 32))
+const getSecretKey = (): Buffer => {
+  const key = process.env.ENCRYPTION_KEY
+  if (!key || Buffer.byteLength(key, 'utf8') !== KEY_LENGTH_BYTES) {
+    throw new Error('ENCRYPTION_KEY must be exactly 32 UTF-8 bytes')
   }
-  return Buffer.from(key)
+
+  return Buffer.from(key, 'utf8')
 }
 
 export function encrypt(text: string): string {
@@ -44,7 +44,6 @@ export function decrypt(encryptedText: string): string {
     
     return decrypted
   } catch (error) {
-    console.error('Decryption failed', error)
-    return '' // or throw
+    throw new Error('Unable to decrypt value', { cause: error })
   }
 }

@@ -5,12 +5,13 @@ import {
 import { PrismaService } from '../../database/prisma.service'
 import { CreateNoteDto } from './dto/create-note.dto'
 import { UpdateNoteDto } from './dto/update-note.dto'
+import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto'
 
 @Injectable()
 export class NotesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(userId: string) {
+  async findAll(userId: string, query: PaginationQueryDto) {
     return this.prisma.note.findMany({
       where: {
         userId,
@@ -20,6 +21,8 @@ export class NotesService {
         { pinned: 'desc' },
         { updatedAt: 'desc' },
       ],
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
     })
   }
 

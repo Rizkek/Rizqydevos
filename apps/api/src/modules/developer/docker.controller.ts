@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Param, Body, UseGuards } from '@nestjs/common'
 import { DockerService } from './docker.service'
 import { AuthGuard } from '../../shared/guards/auth.guard'
+import { DockerActionDto } from './dto/docker-action.dto'
 
 @Controller('developer/docker')
 @UseGuards(AuthGuard)
@@ -15,8 +16,8 @@ export class DockerController {
   @Post('containers/:id/action')
   async performAction(
     @Param('id') id: string,
-    @Body('action') action: 'start' | 'stop' | 'restart' | 'remove',
+    @Body() dto: DockerActionDto,
   ) {
-    return this.dockerService.performAction(id, action)
+    return this.dockerService.performAction(id, dto.action)
   }
 }

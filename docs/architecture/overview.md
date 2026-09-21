@@ -28,10 +28,10 @@ Reference ADRs for the reasoning behind each decision.
      │   Port: 3000        │  │   Port: 3001         │
      │                     │  │                      │
      │  App Router         │  │  REST API            │
-     │  React Server       │  │  WebSocket Gateway   │
-     │  Components         │  │  BullMQ Workers      │
-     │  shadcn/ui          │  │  Cron Jobs           │
-     │  TanStack Query     │  │  Better Auth         │
+     │  React Server       │  │  Better Auth         │
+     │  Components         │  │                      │
+     │  shadcn/ui          │  │                      │
+     │  TanStack Query     │  │                      │
      │  Zustand            │  │                      │
      └─────────────────────┘  └──────────┬───────────┘
                                           │
@@ -39,14 +39,14 @@ Reference ADRs for the reasoning behind each decision.
               │                           │                       │
               ▼                           ▼                       ▼
   ┌───────────────────┐     ┌─────────────────────┐  ┌──────────────────┐
-  │  PostgreSQL 17    │     │    Redis 7           │  │  Meilisearch     │
-  │  Port: 5432       │     │    Port: 6379        │  │  Port: 7700      │
-  │                   │     │                      │  │                  │
-  │  Primary data     │     │  Session store       │  │  Full-text       │
-  │  Prisma ORM       │     │  Query cache         │  │  search index    │
-  │  Migrations       │     │  BullMQ queues       │  │  Notes, snippets │
-  │  Soft deletes     │     │  Rate limiting       │  │                  │
-  └───────────────────┘     └─────────────────────┘  └──────────────────┘
+  │  PostgreSQL 17    │     │    Redis 7           │
+  │  Port: 5432       │     │    Port: 6379        │
+  │                   │     │                      │
+  │  Primary data     │     │  Session store       │
+  │  Prisma ORM       │     │  Query cache         │
+  │  Migrations       │     │  Rate limiting       │
+  │  Soft deletes     │     │                      │
+  └───────────────────┘     └─────────────────────┘
 
               External Services (API integrations)
               ┌─────────────────────────────────────┐
@@ -68,8 +68,7 @@ Reference ADRs for the reasoning behind each decision.
 | Primary database | PostgreSQL 17 + Prisma | [ADR-003](./adr/ADR-003-postgresql-database.md) |
 | Authentication | Better Auth | [ADR-004](./adr/ADR-004-better-auth.md) |
 | Deployment | Docker + Coolify | [ADR-005](./adr/ADR-005-docker-coolify-deployment.md) |
-| Cache / Queue | Redis 7 + BullMQ | (to be documented) |
-| Search | Meilisearch | (to be documented) |
+| Cache | Redis 7 | (to be documented) |
 | Storage | Cloudflare R2 | (to be documented) |
 | UI Components | Tailwind CSS v4 + shadcn/ui | (to be documented) |
 
@@ -119,7 +118,7 @@ User opens Dashboard
 Next.js Server Component fetches initial data server-side
   │
   ▼
-NestJS API → Service → Repository → PostgreSQL
+NestJS API → Service → PostgreSQL
   │
   ▼
 Data returned as props to Client Components
@@ -143,7 +142,7 @@ React Hook Form validates with Zod schema (client)
 TanStack Mutation → POST /api/v1/workspace/todos
   │
   ▼
-NestJS: DTO validation → Service → Repository → Prisma → PostgreSQL
+NestJS: DTO validation → Service → Prisma → PostgreSQL
   │
   ▼
 Service invalidates Redis cache for this user's todos
@@ -158,16 +157,16 @@ Response → TanStack Query optimistic update already shown
 UI reflects confirmed state
 ```
 
-### Real-time Flow
+### Background Polling Flow
 
 ```
 Server metric changes (Docker container goes down)
   │
   ▼
-NestJS monitors via polling or Docker Events API
+Next.js Client polls /api/v1/developer/docker/containers
   │
   ▼
-Socket.IO emits event to connected client
+NestJS runs Docker CLI
   │
   ▼
 Dashboard widget updates without page refresh

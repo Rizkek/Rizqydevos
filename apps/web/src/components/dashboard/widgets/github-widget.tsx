@@ -7,16 +7,16 @@ import { Button } from '@/components/ui/button'
 import { WidgetConfig } from '@/stores/widget.store'
 import { useQuery } from '@tanstack/react-query'
 import { fetchApi } from '@/lib/api'
+import { createQueryOptions, queryKeys } from '@/lib/query'
 
 export function GithubWidget({ config }: { config: WidgetConfig }) {
-  const { data: events, isLoading, error } = useQuery({
-    queryKey: ['github-activity'],
-    queryFn: async () => {
+  const { data: events, isLoading, error } = useQuery(
+    createQueryOptions(queryKeys.githubActivity, async () => {
       return fetchApi<any[]>('/integrations/github/activity').catch((err) => {
         throw new Error('Integration not configured')
       })
-    }
-  })
+    })
+  )
 
   return (
     <WidgetCard

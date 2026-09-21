@@ -5,12 +5,13 @@ import {
 import { PrismaService } from '../../database/prisma.service'
 import { CreateBookmarkDto } from './dto/create-bookmark.dto'
 import { UpdateBookmarkDto } from './dto/update-bookmark.dto'
+import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto'
 
 @Injectable()
 export class BookmarksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(userId: string) {
+  async findAll(userId: string, query: PaginationQueryDto) {
     return this.prisma.bookmark.findMany({
       where: {
         userId,
@@ -20,6 +21,8 @@ export class BookmarksService {
         { pinned: 'desc' },
         { createdAt: 'desc' },
       ],
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
     })
   }
 

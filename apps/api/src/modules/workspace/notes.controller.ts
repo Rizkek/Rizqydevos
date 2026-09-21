@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -15,6 +16,7 @@ import { CreateNoteDto } from './dto/create-note.dto'
 import { UpdateNoteDto } from './dto/update-note.dto'
 import { AuthGuard } from '../../shared/guards/auth.guard'
 import { CurrentUser } from '../../shared/decorators/current-user.decorator'
+import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto'
 
 @Controller('workspace/notes')
 @UseGuards(AuthGuard)
@@ -22,8 +24,8 @@ export class NotesController {
   constructor(private readonly notesService: NotesService) {}
 
   @Get()
-  findAll(@CurrentUser('id') userId: string) {
-    return this.notesService.findAll(userId)
+  findAll(@Query() pagination: PaginationQueryDto, @CurrentUser('id') userId: string) {
+    return this.notesService.findAll(userId, pagination)
   }
 
   @Get(':id')

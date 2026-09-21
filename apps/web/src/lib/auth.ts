@@ -16,6 +16,9 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 8,
     maxPasswordLength: 128,
+    sendResetPassword: async ({ user, url }) => {
+      console.log(`[Better Auth] Password reset link for ${user.email}: ${url}`)
+    },
   },
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days

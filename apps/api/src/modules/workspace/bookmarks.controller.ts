@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -15,6 +16,7 @@ import { CreateBookmarkDto } from './dto/create-bookmark.dto'
 import { UpdateBookmarkDto } from './dto/update-bookmark.dto'
 import { AuthGuard } from '../../shared/guards/auth.guard'
 import { CurrentUser } from '../../shared/decorators/current-user.decorator'
+import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto'
 
 @Controller('workspace/bookmarks')
 @UseGuards(AuthGuard)
@@ -22,8 +24,8 @@ export class BookmarksController {
   constructor(private readonly bookmarksService: BookmarksService) {}
 
   @Get()
-  findAll(@CurrentUser('id') userId: string) {
-    return this.bookmarksService.findAll(userId)
+  findAll(@Query() pagination: PaginationQueryDto, @CurrentUser('id') userId: string) {
+    return this.bookmarksService.findAll(userId, pagination)
   }
 
   @Get(':id')

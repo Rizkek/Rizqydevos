@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Query,
   Delete,
   HttpCode,
   HttpStatus,
@@ -14,6 +15,7 @@ import { SecretService } from './secret.service'
 import { CreateSecretDto, UpdateSecretDto } from './dto/secret.dto'
 import { AuthGuard } from '../../shared/guards/auth.guard'
 import { CurrentUser } from '../../shared/decorators/current-user.decorator'
+import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto'
 
 @Controller('secrets')
 @UseGuards(AuthGuard)
@@ -21,8 +23,8 @@ export class SecretController {
   constructor(private readonly secretService: SecretService) {}
 
   @Get()
-  findAll(@CurrentUser('id') userId: string) {
-    return this.secretService.findAll(userId)
+  findAll(@Query() pagination: PaginationQueryDto, @CurrentUser('id') userId: string) {
+    return this.secretService.findAll(userId, pagination)
   }
 
   @Get(':id')
