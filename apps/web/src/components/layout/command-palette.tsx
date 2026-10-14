@@ -3,21 +3,36 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { Command } from 'cmdk'
+import * as Dialog from '@radix-ui/react-dialog'
+import { useReturnFocus } from '@/lib/use-return-focus'
 import { useCommandStore } from '@/stores/command.store'
-import { useUIStore } from '@/stores/ui.store'
-import { 
-  LayoutDashboard, FolderKanban, Briefcase, BrainCircuit, TerminalSquare, 
-  ServerCrash, ShieldCheck, Activity, Bot, BarChart3, Zap, Settings,
-  Moon, Sun, Laptop, Palette, PlusCircle
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useUIStore, type AccentColor, type Theme } from '@/stores/ui.store'
+import { Moon, Sun, Laptop, Palette, type LucideIcon } from 'lucide-react'
+import { mainNavItems, settingsNavItem } from './nav-links'
+
+const themeCommands: { id: Theme; label: string; icon: LucideIcon }[] = [
+  { id: 'dark', label: 'Dark theme', icon: Moon },
+  { id: 'light', label: 'Light theme', icon: Sun },
+  { id: 'system', label: 'System theme', icon: Laptop },
+]
+
+const accentCommands: { id: AccentColor; label: string }[] = [
+  { id: 'violet', label: 'Violet accent' },
+  { id: 'emerald', label: 'Emerald accent' },
+  { id: 'cyan', label: 'Cyan accent' },
+  { id: 'amber', label: 'Amber accent' },
+  { id: 'rose', label: 'Rose accent' },
+]
+
+// Navigation targets mirror the sidebar so the two cannot drift apart.
+const navigationCommands = [...mainNavItems, settingsNavItem]
 
 export function CommandPalette() {
   const router = useRouter()
   const { isOpen, setIsOpen } = useCommandStore()
   const { setTheme, theme, accentColor, setAccentColor } = useUIStore()
+  const returnFocus = useReturnFocus()
 
-  // Toggle the menu when ⌘K is pressed
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
@@ -30,96 +45,67 @@ export function CommandPalette() {
     return () => document.removeEventListener('keydown', down)
   }, [isOpen, setIsOpen])
 
-  const runCommand = React.useCallback((command: () => unknown) => {
-    setIsOpen(false)
-    command()
-  }, [setIsOpen])
+  const runCommand = React.useCallback(
+    (command: () => unknown) => {
+      setIsOpen(false)
+      command()
+    },
+    [setIsOpen],
+  )
 
-  if (!isOpen) return null
-
+  // Radix Dialog supplies role="dialog", the focus trap and Escape; useReturnFocus restores focus to the opener.
   return (
-    <div className="fixed inset-0 z-[var(--z-command)] bg-black/60 flex items-start justify-center pt-[15vh]">
-      <Command 
-        className="w-full max-w-2xl bg-[var(--color-surface)] rounded-[var(--radius-xl)] shadow-[var(--shadow-xl)] border border-[var(--color-border-strong)] overflow-hidden flex flex-col"
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') setIsOpen(false)
-        }}
-      >
-        <div className="flex items-center border-b border-[var(--color-border)] px-4">
-          <Command.Input 
-            autoFocus
-            placeholder="What do you need?" 
-            className="flex-1 h-14 bg-transparent outline-none text-[15px] placeholder:text-[var(--color-text-muted)] text-[var(--color-text)]" 
-          />
-          <kbd className="hidden sm:inline-flex h-6 items-center gap-1 rounded bg-[var(--color-surface-3)] px-2 font-mono text-[10px] font-medium text-[var(--color-text-2)] border border-[var(--color-border)]">
-            ESC
-          </kbd>
-        </div>
-
-        <Command.List className="max-h-[60vh] overflow-y-auto p-2 overscroll-contain">
-          <Command.Empty className="py-12 text-center text-[13px] text-[var(--color-text-muted)]">
-            No results found.
-          </Command.Empty>
-
-          <Command.Group heading="Navigation" className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-[var(--color-text-muted)] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider">
-            <Command.Item onSelect={() => runCommand(() => router.push('/'))} className={itemClass}>
-              <LayoutDashboard size={16} /> Dashboard
-            </Command.Item>
-            <Command.Item onSelect={() => runCommand(() => router.push('/projects'))} className={itemClass}>
-              <FolderKanban size={16} /> Projects
-            </Command.Item>
-            <Command.Item onSelect={() => runCommand(() => router.push('/workspace'))} className={itemClass}>
-              <Briefcase size={16} /> Workspace
-            </Command.Item>
-            <Command.Item onSelect={() => runCommand(() => router.push('/knowledge'))} className={itemClass}>
-              <BrainCircuit size={16} /> Knowledge
-            </Command.Item>
-            <Command.Item onSelect={() => runCommand(() => router.push('/developer'))} className={itemClass}>
-              <TerminalSquare size={16} /> Developer
-            </Command.Item>
-            <Command.Item onSelect={() => runCommand(() => router.push('/infrastructure'))} className={itemClass}>
-              <ServerCrash size={16} /> Infrastructure
-            </Command.Item>
-            <Command.Item onSelect={() => runCommand(() => router.push('/settings'))} className={itemClass}>
-              <Settings size={16} /> Settings
-            </Command.Item>
-          </Command.Group>
-
-          <Command.Group heading="Quick Actions" className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-[var(--color-text-muted)] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider">
-            <Command.Item onSelect={() => runCommand(() => console.log('New Task'))} className={itemClass}>
-              <PlusCircle size={16} /> Create Task...
-            </Command.Item>
-            <Command.Item onSelect={() => runCommand(() => console.log('New Snippet'))} className={itemClass}>
-              <PlusCircle size={16} /> Create Snippet...
-            </Command.Item>
-            <Command.Item onSelect={() => runCommand(() => console.log('New Project'))} className={itemClass}>
-              <PlusCircle size={16} /> Create Project...
-            </Command.Item>
-          </Command.Group>
-
-          <Command.Group heading="Appearance" className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-[var(--color-text-muted)] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider">
-            <Command.Item onSelect={() => runCommand(() => setTheme('dark'))} className={itemClass}>
-              <Moon size={16} /> Dark Theme {theme === 'dark' && ' (Active)'}
-            </Command.Item>
-            <Command.Item onSelect={() => runCommand(() => setTheme('light'))} className={itemClass}>
-              <Sun size={16} /> Light Theme {theme === 'light' && ' (Active)'}
-            </Command.Item>
-            <Command.Item onSelect={() => runCommand(() => setTheme('system'))} className={itemClass}>
-              <Laptop size={16} /> System Theme {theme === 'system' && ' (Active)'}
-            </Command.Item>
-            
-            <Command.Item onSelect={() => runCommand(() => setAccentColor('violet'))} className={itemClass}>
-              <Palette size={16} className="text-violet-500" /> Violet Accent {accentColor === 'violet' && ' (Active)'}
-            </Command.Item>
-            <Command.Item onSelect={() => runCommand(() => setAccentColor('emerald'))} className={itemClass}>
-              <Palette size={16} className="text-emerald-500" /> Emerald Accent {accentColor === 'emerald' && ' (Active)'}
-            </Command.Item>
-          </Command.Group>
-
-        </Command.List>
-      </Command>
-    </div>
+    <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[var(--z-command)] bg-[var(--color-overlay)]" />
+        <Dialog.Content aria-label="Command palette" aria-describedby={undefined} className="fixed left-1/2 top-[15vh] z-[var(--z-command)] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] shadow-[var(--shadow-xl)]" {...returnFocus}>
+        <Command label="Command palette" shouldFilter>
+          <div className="flex items-center border-b border-[var(--color-border)] px-4">
+            <Command.Input
+              placeholder="Search pages and settings"
+              aria-label="Search commands"
+              className="flex-1 h-14 bg-transparent outline-none text-[15px] placeholder:text-[var(--color-text-muted)] text-[var(--color-text)]"
+            />
+            <kbd className="hidden sm:inline-flex h-6 items-center rounded bg-[var(--color-surface-3)] px-2 font-mono text-[12px] font-medium text-[var(--color-text-2)] border border-[var(--color-border)]">
+              Esc
+            </kbd>
+          </div>
+    
+          <Command.List className="max-h-[60vh] overflow-y-auto p-2 overscroll-contain">
+            <Command.Empty className="py-12 text-center text-[13px] text-[var(--color-text-2)]">No results found.</Command.Empty>
+    
+            <Command.Group heading="Navigation" className={groupClass}>
+              {navigationCommands.map(({ name, path, icon: Icon }) => (
+                <Command.Item key={path} onSelect={() => runCommand(() => router.push(path))} className={itemClass}>
+                  <Icon aria-hidden="true" size={16} /> {name}
+                </Command.Item>
+              ))}
+            </Command.Group>
+    
+            <Command.Group heading="Appearance" className={groupClass}>
+              {themeCommands.map(({ id, label, icon: Icon }) => (
+                <Command.Item key={id} onSelect={() => runCommand(() => setTheme(id))} className={itemClass}>
+                  <Icon aria-hidden="true" size={16} /> {label}
+                  {theme === id && <span className="ml-auto text-[12px] text-[var(--color-text-2)]">Current</span>}
+                </Command.Item>
+              ))}
+              {accentCommands.map(({ id, label }) => (
+                <Command.Item key={id} onSelect={() => runCommand(() => setAccentColor(id))} className={itemClass}>
+                  <Palette aria-hidden="true" size={16} /> {label}
+                  {accentColor === id && <span className="ml-auto text-[12px] text-[var(--color-text-2)]">Current</span>}
+                </Command.Item>
+              ))}
+            </Command.Group>
+          </Command.List>
+        </Command>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
 
-const itemClass = "relative flex cursor-default select-none items-center rounded-md px-3 py-2.5 text-[13px] outline-none hover:bg-[var(--color-surface-2)] aria-selected:bg-[var(--color-surface-2)] aria-selected:text-[var(--color-text)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50 gap-3 text-[var(--color-text-2)] transition-colors"
+const groupClass =
+  '[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-[12px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-[var(--color-text-2)] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider'
+
+const itemClass =
+  'relative flex cursor-default select-none items-center rounded-md px-3 py-2.5 text-[13px] outline-none hover:bg-[var(--color-surface-2)] aria-selected:bg-[var(--color-surface-2)] aria-selected:text-[var(--color-text)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50 gap-3 text-[var(--color-text-2)] transition-colors'

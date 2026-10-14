@@ -1,8 +1,11 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common'
+import { SkipThrottle } from '@nestjs/throttler'
 import { Public } from './shared/decorators/public.decorator'
 import { PrismaService } from './database/prisma.service'
 import { CacheService } from './cache/cache.service'
 
+// Platform probes poll often from one address; a 429 here would make a healthy service look down.
+@SkipThrottle()
 @Controller('health')
 export class HealthController {
   constructor(

@@ -22,6 +22,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let code = 'INTERNAL_SERVER_ERROR'
     let message = 'An unexpected error occurred'
     let details: Record<string, string[]> | undefined
+    let retryAfter: number | undefined
 
     // NestJS HTTP exceptions (including ValidationPipe errors)
     if (exception instanceof HttpException) {
@@ -32,6 +33,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         const resp = exceptionResponse as Record<string, unknown>
         message = (resp['message'] as string) ?? exception.message
         code = (resp['error'] as string)?.toUpperCase().replace(/ /g, '_') ?? 'HTTP_EXCEPTION'
+        if (typeof resp['retryAfter'] === 'number') retryAfter = resp['retryAfter']
 
         // Validation errors come as an array
         if (Array.isArray(resp['message'])) {
@@ -74,6 +76,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       )
     }
 
+    // Throttler and provider limits share one code so the web app handles them the same way.
+    if (status === HttpStatus.TOO_MANY_REQUESTS && code === 'HTTP_EXCEPTION') {
+      code = 'RATE_LIMITED'
+      message = 'Too many requests. Please slow down.'
+    }
+
+    if (retryAfter !== undefined) response.setHeader('Retry-After', String(Math.ceil(retryAfter)))
+
     response.status(status).json({
       success: false,
       error: {
@@ -81,6 +91,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         message,
         correlationId: (request as any).correlationId,
         ...(details && { details }),
+        ...(retryAfter !== undefined && { retryAfter }),
       },
     })
   }

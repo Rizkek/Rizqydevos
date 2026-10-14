@@ -21,14 +21,20 @@
   /* Text */
   --color-text:          hsl(0, 0%, 97%);
   --color-text-2:        hsl(0, 0%, 70%);
-  --color-text-muted:    hsl(0, 0%, 45%);
+  --color-text-muted:    hsl(0, 0%, 62%);
   --color-text-disabled: hsl(0, 0%, 30%);
 
-  /* Accent — Violet */
-  --color-accent:        hsl(262, 83%, 68%);
-  --color-accent-hover:  hsl(262, 83%, 60%);
-  --color-accent-muted:  hsl(262 83% 68% / 0.15);
-  --color-accent-border: hsl(262 83% 68% / 0.30);
+  /* Border of form controls. WCAG 1.4.11 asks 3:1 against the control's own fill. */
+  --color-input-border:  hsl(0, 0%, 42%);
+
+  /* Text on solid accent and semantic backgrounds (buttons, badges). Dark theme uses bright fills. */
+  --color-on-solid:      hsl(0, 0%, 6%);
+
+  /* Accent — Violet (default). Overridden per [data-accent] below. */
+  --color-accent:        hsl(262, 83%, 72%);
+  --color-accent-hover:  hsl(262, 83%, 78%);
+  --color-accent-muted:  hsl(262 83% 72% / 0.15);
+  --color-accent-border: hsl(262 83% 72% / 0.30);
   --color-accent-text:   hsl(262, 100%, 85%);
 
   /* Semantic */
@@ -36,15 +42,15 @@
   --color-success-muted: hsl(142 71% 45% / 0.15);
   --color-warning:       hsl(38, 92%, 50%);
   --color-warning-muted: hsl(38 92% 50% / 0.15);
-  --color-danger:        hsl(0, 84%, 60%);
-  --color-danger-muted:  hsl(0 84% 60% / 0.15);
-  --color-info:          hsl(217, 91%, 60%);
-  --color-info-muted:    hsl(217 91% 60% / 0.15);
+  --color-danger:        hsl(0, 84%, 65%);
+  --color-danger-muted:  hsl(0 84% 65% / 0.15);
+  --color-info:          hsl(217, 91%, 65%);
+  --color-info-muted:    hsl(217 91% 65% / 0.15);
 
-  /* UI */
-  --color-focus-ring:    hsl(262 83% 68% / 0.5);
+  /* UI. The ring is opaque: a translucent ring fell below 3:1 against the page. */
+  --color-focus-ring:    var(--color-accent);
   --color-overlay:       hsl(0 0% 0% / 0.6);
-  --color-selection:     hsl(262 83% 68% / 0.25);
+  --color-selection:     hsl(262 83% 72% / 0.25);
 
   /* Spacing */
   --spacing-widget-pad:  16px;
@@ -101,11 +107,71 @@
   --color-border-strong: hsl(0, 0%, 78%);
   --color-text:          hsl(0, 0%, 9%);
   --color-text-2:        hsl(0, 0%, 32%);
-  --color-text-muted:    hsl(0, 0%, 55%);
+  --color-text-muted:    hsl(0, 0%, 42%);
   --color-text-disabled: hsl(0, 0%, 70%);
-  --color-accent:        hsl(262, 83%, 58%);
-  --color-accent-hover:  hsl(262, 83%, 50%);
+  --color-input-border:  hsl(0, 0%, 52%);
+  --color-on-solid:      hsl(0, 0%, 100%);
+
+  --color-accent:        hsl(262, 83%, 50%);
+  --color-accent-hover:  hsl(262, 83%, 44%);
+  --color-accent-muted:  hsl(262 83% 50% / 0.12);
+  --color-accent-border: hsl(262 83% 50% / 0.30);
   --color-accent-text:   hsl(262, 83%, 40%);
+  --color-selection:     hsl(262 83% 50% / 0.2);
+
+  /* Light fills are dark, so each semantic color works as text on white and under white text. */
+  --color-success:       hsl(142, 71%, 27%);
+  --color-success-muted: hsl(142 71% 27% / 0.12);
+  --color-warning:       hsl(32, 95%, 30%);
+  --color-warning-muted: hsl(32 95% 30% / 0.12);
+  --color-danger:        hsl(0, 72%, 42%);
+  --color-danger-muted:  hsl(0 72% 42% / 0.12);
+  --color-info:          hsl(217, 91%, 42%);
+  --color-info-muted:    hsl(217 91% 42% / 0.12);
+}
+
+/* ── Accent colors ────────────────────────────────────────────────────────── */
+/* Selected in Settings and written to <html data-accent>. Each value was checked
+   at 4.5:1 as text on every surface and under --color-on-solid. */
+[data-accent="emerald"] {
+  --color-accent: hsl(160, 84%, 45%); --color-accent-hover: hsl(160, 84%, 52%);
+  --color-accent-muted: hsl(160 84% 45% / 0.15); --color-accent-border: hsl(160 84% 45% / 0.30);
+  --color-accent-text: hsl(160, 84%, 70%); --color-selection: hsl(160 84% 45% / 0.25);
+}
+[data-accent="cyan"] {
+  --color-accent: hsl(188, 86%, 50%); --color-accent-hover: hsl(188, 86%, 58%);
+  --color-accent-muted: hsl(188 86% 50% / 0.15); --color-accent-border: hsl(188 86% 50% / 0.30);
+  --color-accent-text: hsl(188, 86%, 70%); --color-selection: hsl(188 86% 50% / 0.25);
+}
+[data-accent="amber"] {
+  --color-accent: hsl(38, 92%, 50%); --color-accent-hover: hsl(38, 92%, 58%);
+  --color-accent-muted: hsl(38 92% 50% / 0.15); --color-accent-border: hsl(38 92% 50% / 0.30);
+  --color-accent-text: hsl(38, 92%, 70%); --color-selection: hsl(38 92% 50% / 0.25);
+}
+[data-accent="rose"] {
+  --color-accent: hsl(350, 89%, 64%); --color-accent-hover: hsl(350, 89%, 72%);
+  --color-accent-muted: hsl(350 89% 64% / 0.15); --color-accent-border: hsl(350 89% 64% / 0.30);
+  --color-accent-text: hsl(350, 89%, 78%); --color-selection: hsl(350 89% 64% / 0.25);
+}
+[data-theme="light"][data-accent="emerald"] {
+  --color-accent: hsl(160, 84%, 25%); --color-accent-hover: hsl(160, 84%, 20%);
+  --color-accent-muted: hsl(160 84% 25% / 0.12); --color-accent-border: hsl(160 84% 25% / 0.30);
+  --color-accent-text: hsl(160, 84%, 20%); --color-selection: hsl(160 84% 25% / 0.2);
+}
+[data-theme="light"][data-accent="cyan"] {
+  --color-accent: hsl(188, 86%, 26%); --color-accent-hover: hsl(188, 86%, 21%);
+  --color-accent-muted: hsl(188 86% 26% / 0.12); --color-accent-border: hsl(188 86% 26% / 0.30);
+  --color-accent-text: hsl(188, 86%, 21%); --color-selection: hsl(188 86% 26% / 0.2);
+}
+[data-theme="light"][data-accent="amber"] {
+  --color-accent: hsl(32, 95%, 28%); --color-accent-hover: hsl(32, 95%, 23%);
+  --color-accent-muted: hsl(32 95% 28% / 0.12); --color-accent-border: hsl(32 95% 28% / 0.30);
+  --color-accent-text: hsl(32, 95%, 23%); --color-selection: hsl(32 95% 28% / 0.2);
+}
+[data-theme="light"][data-accent="rose"] {
+  --color-accent: hsl(350, 80%, 42%); --color-accent-hover: hsl(350, 80%, 36%);
+  --color-accent-muted: hsl(350 80% 42% / 0.12); --color-accent-border: hsl(350 80% 42% / 0.30);
+  --color-accent-text: hsl(350, 80%, 36%); --color-selection: hsl(350 80% 42% / 0.2);
 }
 
 /* ── Base Styles ──────────────────────────────────────────────────────────── */

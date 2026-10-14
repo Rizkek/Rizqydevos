@@ -4,7 +4,6 @@ import * as React from 'react'
 import { WidgetCard } from '../widget-card'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { WidgetConfig } from '@/stores/widget.store'
-import { Loader2 } from 'lucide-react'
 import { fetchApi } from '@/lib/api'
 import { createQueryOptions, queryKeys } from '@/lib/query'
 
@@ -92,7 +91,7 @@ export function QuickNotesWidget({ config }: { config?: WidgetConfig }) {
     >
       {isLoading ? (
         <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-2)] gap-2 text-[12px]">
-          <Loader2 size={14} className="animate-spin" /> Loading...
+          <span role="status">Loading...</span>
         </div>
       ) : (
         <>
@@ -101,11 +100,10 @@ export function QuickNotesWidget({ config }: { config?: WidgetConfig }) {
             onChange={handleChange}
             placeholder="Jot down quick thoughts, markdown supported..."
             className="w-full h-full p-4 bg-transparent resize-none outline-none text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] font-mono leading-relaxed"
-            spellCheck={false}
-          />
+            spellCheck={false} aria-label="Jot down quick thoughts, markdown supported" />
           {saveMutation.isPending && (
-            <div className="absolute bottom-2 right-3 text-[10px] text-[var(--color-text-muted)] italic flex items-center gap-1">
-              <Loader2 size={10} className="animate-spin" /> Saving...
+            <div className="absolute bottom-2 right-3 text-[12px] text-[var(--color-text-muted)] italic flex items-center gap-1">
+              <span role="status">Saving...</span>
             </div>
           )}
         </>

@@ -5,12 +5,13 @@ import { PageHeader } from '@/components/shared/page-header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Code, Globe, Activity, PauseCircle, Archive, Loader2, X, Trash2, Edit2 } from 'lucide-react'
+import { Plus, Code, Globe, Activity, PauseCircle, Archive, X, Trash2, Edit2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { fetchApi } from '@/lib/api'
 import { createQueryOptions, queryKeys } from '@/lib/query'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 
 type Project = {
   id: string
@@ -117,7 +118,7 @@ export default function ProjectsPage() {
       
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="animate-spin text-[var(--color-text-muted)] h-8 w-8" />
+          <span role="status" className="text-[13px] text-[var(--color-text-2)]">Loading…</span>
         </div>
       ) : projects.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-[var(--color-text-muted)]">
@@ -133,7 +134,7 @@ export default function ProjectsPage() {
                   <h3 className="text-[16px] font-bold text-[var(--color-text)] tracking-tight">{project.name}</h3>
                   <Badge 
                     variant={project.status === 'ACTIVE' ? 'success' : project.status === 'PAUSED' ? 'warning' : 'secondary'} 
-                    className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 h-5 flex items-center gap-1"
+                    className="text-[12px] uppercase font-bold tracking-wider px-2 py-0.5 h-5 flex items-center gap-1"
                   >
                     {project.status === 'ACTIVE' && <Activity size={10} />}
                     {project.status === 'PAUSED' && <PauseCircle size={10} />}
@@ -146,7 +147,7 @@ export default function ProjectsPage() {
                 </p>
                 <div className="flex flex-wrap gap-1.5 mb-4">
                   {project.techStack.map(t => (
-                    <Badge key={t} variant="outline" className="text-[11px] font-medium text-[var(--color-text-muted)] border-[var(--color-border-subtle)] bg-[var(--color-surface-2)]">
+                    <Badge key={t} variant="outline" className="text-[12px] font-medium text-[var(--color-text-muted)] border-[var(--color-border-subtle)] bg-[var(--color-surface-2)]">
                       {t}
                     </Badge>
                   ))}
@@ -166,17 +167,18 @@ export default function ProjectsPage() {
                     </a>
                   )}
                 </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-within:opacity-100 transition-opacity">
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-7 w-7"
+                    className="h-8 w-8"
+                    aria-label={`Edit ${project.name}`}
                     onClick={(e: React.MouseEvent) => {
                       e.stopPropagation();
                       handleOpenForm(project);
                     }}
                   >
-                    <Edit2 size={13} />
+                    <Edit2 aria-hidden="true" size={13} />
                   </Button>
                 </div>
               </div>
@@ -186,17 +188,12 @@ export default function ProjectsPage() {
       )}
 
       {/* Slide-over Form */}
-      {isFormOpen && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/50 z-[40]" 
-            onClick={handleCloseForm}
-          />
-          <div className="fixed top-0 right-0 h-full w-[450px] bg-[var(--color-bg)] border-l border-[var(--color-border)] shadow-2xl z-[50] flex flex-col animate-in slide-in-from-right duration-200">
+      <Sheet open={isFormOpen} onOpenChange={(open) => { if (!open) handleCloseForm() }}>
+        <SheetContent>
             <div className="h-[60px] border-b border-[var(--color-border)] flex items-center justify-between px-6 shrink-0">
-              <h2 className="text-[15px] font-semibold text-[var(--color-text)]">
+              <SheetTitle className="text-[15px] font-semibold text-[var(--color-text)]">
                 {editingProject ? 'Edit Project' : 'New Project'}
-              </h2>
+              </SheetTitle>
               <div className="flex items-center gap-2">
                 {editingProject && (
                   <Button 
@@ -208,21 +205,22 @@ export default function ProjectsPage() {
                         deleteMutation.mutate(editingProject.id)
                       }
                     }}
+                    aria-label="Delete project"
                     disabled={deleteMutation.isPending}
                   >
-                    <Trash2 size={16} />
+                    <Trash2 aria-hidden="true" size={16} />
                   </Button>
                 )}
-                <Button variant="ghost" size="icon" onClick={handleCloseForm} className="text-[var(--color-text-2)] hover:text-[var(--color-text)]">
-                  <X size={18} />
+                <Button variant="ghost" size="icon" aria-label="Close form" onClick={handleCloseForm} className="text-[var(--color-text-2)] hover:text-[var(--color-text)]">
+                  <X aria-hidden="true" size={18} />
                 </Button>
               </div>
             </div>
             
             <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
               <div className="flex flex-col gap-2">
-                <label className="text-[12px] font-medium text-[var(--color-text-2)]">Name <span className="text-[var(--color-danger)]">*</span></label>
-                <Input 
+                <label htmlFor="project-field-1" className="text-[12px] font-medium text-[var(--color-text-2)]">Name <span className="text-[var(--color-danger)]">*</span></label>
+                <Input id="project-field-1" 
                   placeholder="e.g. Acme Website" 
                   value={name}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
@@ -232,8 +230,8 @@ export default function ProjectsPage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-[12px] font-medium text-[var(--color-text-2)]">Status</label>
-                <select 
+                <label htmlFor="project-field-2" className="text-[12px] font-medium text-[var(--color-text-2)]">Status</label>
+                <select id="project-field-2" 
                   value={status} 
                   onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as any)}
                   className="w-full h-10 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)]"
@@ -245,8 +243,8 @@ export default function ProjectsPage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-[12px] font-medium text-[var(--color-text-2)]">Description</label>
-                <Textarea 
+                <label htmlFor="project-field-3" className="text-[12px] font-medium text-[var(--color-text-2)]">Description</label>
+                <Textarea id="project-field-3" 
                   placeholder="Brief description" 
                   value={description}
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
@@ -255,8 +253,8 @@ export default function ProjectsPage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-[12px] font-medium text-[var(--color-text-2)]">Repository URL</label>
-                <Input 
+                <label htmlFor="project-field-4" className="text-[12px] font-medium text-[var(--color-text-2)]">Repository URL</label>
+                <Input id="project-field-4" 
                   placeholder="https://github.com/..." 
                   value={repoUrl}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRepoUrl(e.target.value)}
@@ -265,8 +263,8 @@ export default function ProjectsPage() {
               </div>
               
               <div className="flex flex-col gap-2">
-                <label className="text-[12px] font-medium text-[var(--color-text-2)]">Deploy URL</label>
-                <Input 
+                <label htmlFor="project-field-5" className="text-[12px] font-medium text-[var(--color-text-2)]">Deploy URL</label>
+                <Input id="project-field-5" 
                   placeholder="https://..." 
                   value={deployUrl}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeployUrl(e.target.value)}
@@ -275,8 +273,8 @@ export default function ProjectsPage() {
               </div>
               
               <div className="flex flex-col gap-2">
-                <label className="text-[12px] font-medium text-[var(--color-text-2)]">Tech Stack (comma separated)</label>
-                <Input 
+                <label htmlFor="project-field-6" className="text-[12px] font-medium text-[var(--color-text-2)]">Tech Stack (comma separated)</label>
+                <Input id="project-field-6" 
                   placeholder="React, NestJS, Prisma" 
                   value={techStackStr}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTechStackStr(e.target.value)}
@@ -291,13 +289,11 @@ export default function ProjectsPage() {
                 onClick={() => saveMutation.mutate({ name, description, status, repoUrl, deployUrl })}
                 disabled={!name || saveMutation.isPending}
               >
-                {saveMutation.isPending ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
-                {editingProject ? 'Save Changes' : 'Create Project'}
+                {saveMutation.isPending ? 'Saving…' : editingProject ? 'Save Changes' : 'Create Project'}
               </Button>
             </div>
-          </div>
-        </>
-      )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

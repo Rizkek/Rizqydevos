@@ -59,16 +59,16 @@ export function PomodoroWidget() {
       <div className="text-5xl font-bold font-mono tracking-tighter text-[var(--color-text)] relative z-10 drop-shadow-md">
         {mins}:{secs}
       </div>
-      <div className="text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-muted)] mt-2 mb-6 relative z-10">
+      <div className="text-[12px] font-medium uppercase tracking-widest text-[var(--color-text-muted)] mt-2 mb-6 relative z-10">
         {isActive ? 'Focusing' : 'Ready'}
       </div>
 
       <div className="flex items-center gap-3 relative z-10">
-        <Button variant={isActive ? "secondary" : "default"} size="icon" className="w-10 h-10 rounded-full" onClick={toggle}>
+        <Button variant={isActive ? "secondary" : "default"} size="icon" className="w-10 h-10 rounded-full" aria-label={isActive ? 'Pause timer' : 'Start timer'} onClick={toggle}>
           {isActive ? <Pause size={18} /> : <Play size={18} className="ml-1" />}
         </Button>
-        <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full text-[var(--color-text-muted)] hover:text-[var(--color-text)]" onClick={reset}>
-          <RotateCcw size={14} />
+        <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full text-[var(--color-text-muted)] hover:text-[var(--color-text)]" aria-label="Reset timer" onClick={reset}>
+          <RotateCcw aria-hidden="true" size={14} />
         </Button>
       </div>
     </WidgetCard>

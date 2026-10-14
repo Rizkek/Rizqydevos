@@ -11,7 +11,6 @@ import {
   ShieldCheck,
   Globe,
   Plus,
-  Loader2,
   AlertTriangle,
   CheckCircle2,
   XCircle,
@@ -41,22 +40,22 @@ const DEFAULT_URLS = ['https://github.com']
 
 function SslBadge({ status, days }: { status: string; days: number }) {
   if (status === 'VALID') return (
-    <Badge className="gap-1 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 h-5 text-[10px]">
+    <Badge className="gap-1 bg-[var(--color-success-muted)] text-[var(--color-success)] border-[var(--color-success)]/30 h-5 text-[12px]">
       <CheckCircle2 size={10} /> {days}d left
     </Badge>
   )
   if (status === 'EXPIRING_SOON') return (
-    <Badge className="gap-1 bg-yellow-500/10 text-yellow-400 border-yellow-500/20 h-5 text-[10px]">
+    <Badge className="gap-1 bg-[var(--color-warning-muted)] text-[var(--color-warning)] border-[var(--color-warning)]/30 h-5 text-[12px]">
       <AlertTriangle size={10} /> {days}d left
     </Badge>
   )
   if (status === 'EXPIRED') return (
-    <Badge className="gap-1 bg-red-500/10 text-red-400 border-red-500/20 h-5 text-[10px]">
+    <Badge className="gap-1 bg-[var(--color-danger-muted)] text-[var(--color-danger)] border-[var(--color-danger)]/30 h-5 text-[12px]">
       <XCircle size={10} /> Expired
     </Badge>
   )
   return (
-    <Badge className="gap-1 bg-gray-500/10 text-gray-400 border-gray-500/20 h-5 text-[10px]">
+    <Badge className="gap-1 bg-[var(--color-surface-3)] text-[var(--color-text-2)] border-[var(--color-border)] h-5 text-[12px]">
       <XCircle size={10} /> Error
     </Badge>
   )
@@ -64,12 +63,12 @@ function SslBadge({ status, days }: { status: string; days: number }) {
 
 function HealthBadge({ online, latency }: { online: boolean; latency: number | undefined }) {
   if (online) return (
-    <Badge className="gap-1 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 h-5 text-[10px]">
+    <Badge className="gap-1 bg-[var(--color-success-muted)] text-[var(--color-success)] border-[var(--color-success)]/30 h-5 text-[12px]">
       <CheckCircle2 size={10} /> Online {latency ? `· ${latency}ms` : ''}
     </Badge>
   )
   return (
-    <Badge className="gap-1 bg-red-500/10 text-red-400 border-red-500/20 h-5 text-[10px]">
+    <Badge className="gap-1 bg-[var(--color-danger-muted)] text-[var(--color-danger)] border-[var(--color-danger)]/30 h-5 text-[12px]">
       <XCircle size={10} /> Offline
     </Badge>
   )
@@ -123,18 +122,18 @@ export default function MonitoringPage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <Card className="p-4 bg-[var(--color-surface)] border-[var(--color-border-subtle)]">
-          <div className="text-[11px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Monitored Endpoints</div>
+          <div className="text-[12px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Monitored Endpoints</div>
           <div className="text-3xl font-bold text-[var(--color-text)] mt-1">{healthUrls.length}</div>
-          <div className="text-[12px] text-emerald-400 mt-1">{onlineHealth} online</div>
+          <div className="text-[12px] text-[var(--color-success)] mt-1">{onlineHealth} online</div>
         </Card>
         <Card className="p-4 bg-[var(--color-surface)] border-[var(--color-border-subtle)]">
-          <div className="text-[11px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider">SSL Certs Tracked</div>
+          <div className="text-[12px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider">SSL Certs Tracked</div>
           <div className="text-3xl font-bold text-[var(--color-text)] mt-1">{sslHosts.length}</div>
-          <div className="text-[12px] text-emerald-400 mt-1">{validSsl} valid</div>
+          <div className="text-[12px] text-[var(--color-success)] mt-1">{validSsl} valid</div>
         </Card>
         <Card className="p-4 bg-[var(--color-surface)] border-[var(--color-border-subtle)]">
-          <div className="text-[11px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Expiring Soon</div>
-          <div className={`text-3xl font-bold mt-1 ${warningSsl > 0 ? 'text-yellow-400' : 'text-[var(--color-text)]'}`}>{warningSsl}</div>
+          <div className="text-[12px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Expiring Soon</div>
+          <div className={`text-3xl font-bold mt-1 ${warningSsl > 0 ? 'text-[var(--color-warning)]' : 'text-[var(--color-text)]'}`}>{warningSsl}</div>
           <div className="text-[12px] text-[var(--color-text-muted)] mt-1">within 30 days</div>
         </Card>
       </div>
@@ -146,7 +145,7 @@ export default function MonitoringPage() {
             <h3 className="font-medium text-[var(--color-text)] flex items-center gap-2">
               <ShieldCheck size={15} className="text-[var(--color-text-2)]" /> SSL Certificates
             </h3>
-            <Button variant="ghost" size="sm" onClick={() => refetchSsl()} className="h-7 text-[11px] gap-1">
+            <Button variant="ghost" size="sm" onClick={() => refetchSsl()} className="h-7 text-[12px] gap-1">
               <Clock size={11} /> Refresh
             </Button>
           </div>
@@ -156,25 +155,24 @@ export default function MonitoringPage() {
               value={newHost}
               onChange={e => setNewHost(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addHost()}
-              className="h-7 text-[12px] bg-[var(--color-surface-2)] font-mono"
-            />
-            <Button size="sm" className="h-7 w-7 p-0 shrink-0" onClick={addHost}><Plus size={13} /></Button>
+              className="h-7 text-[12px] bg-[var(--color-surface-2)] font-mono" aria-label="add hostname (e.g. example.com)" />
+            <Button size="sm" className="h-8 w-8 p-0 shrink-0" aria-label="Add host" onClick={addHost}><Plus aria-hidden="true" size={13} /></Button>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {sslLoading ? (
               <div className="flex items-center justify-center h-full gap-2 text-[var(--color-text-2)] text-[12px]">
-                <Loader2 size={14} className="animate-spin" /> Checking certs...
+                <span role="status">Checking certs...</span>
               </div>
             ) : sslResults.map((r) => (
               <div key={r.hostname} className="flex items-center gap-3 p-2.5 rounded-lg bg-[var(--color-surface-2)]/50 border border-[var(--color-border-subtle)] group">
                 <Globe size={14} className="text-[var(--color-text-2)] shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="text-[12px] font-mono font-medium text-[var(--color-text)] truncate">{r.hostname}</div>
-                  {r.issuer && <div className="text-[10px] text-[var(--color-text-muted)] truncate mt-0.5">Issuer: {r.issuer}</div>}
+                  {r.issuer && <div className="text-[12px] text-[var(--color-text-muted)] truncate mt-0.5">Issuer: {r.issuer}</div>}
                 </div>
                 <SslBadge status={r.status} days={r.daysRemaining} />
-                <button onClick={() => setSslHosts(prev => prev.filter(h => h !== r.hostname))} className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-text-muted)] hover:text-[var(--color-destructive)]">
-                  <Trash2 size={12} />
+                <button type="button" aria-label={`Remove ${r.hostname}`} onClick={() => setSslHosts(prev => prev.filter(h => h !== r.hostname))} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-within:opacity-100 transition-opacity text-[var(--color-text-2)] hover:text-[var(--color-danger)] p-1.5">
+                  <Trash2 aria-hidden="true" size={12} />
                 </button>
               </div>
             ))}
@@ -187,7 +185,7 @@ export default function MonitoringPage() {
             <h3 className="font-medium text-[var(--color-text)] flex items-center gap-2">
               <Activity size={15} className="text-[var(--color-text-2)]" /> Health Checks
             </h3>
-            <Button variant="ghost" size="sm" onClick={() => refetchHealth()} className="h-7 text-[11px] gap-1">
+            <Button variant="ghost" size="sm" onClick={() => refetchHealth()} className="h-7 text-[12px] gap-1">
               <Clock size={11} /> Refresh
             </Button>
           </div>
@@ -197,25 +195,24 @@ export default function MonitoringPage() {
               value={newUrl}
               onChange={e => setNewUrl(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addUrl()}
-              className="h-7 text-[12px] bg-[var(--color-surface-2)] font-mono"
-            />
+              className="h-7 text-[12px] bg-[var(--color-surface-2)] font-mono" aria-label="add URL (e.g. https://api.example.com)" />
             <Button size="sm" className="h-7 w-7 p-0 shrink-0" onClick={addUrl}><Plus size={13} /></Button>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {healthLoading ? (
               <div className="flex items-center justify-center h-full gap-2 text-[var(--color-text-2)] text-[12px]">
-                <Loader2 size={14} className="animate-spin" /> Pinging endpoints...
+                <span role="status">Pinging endpoints...</span>
               </div>
             ) : healthResults.map((r) => (
               <div key={r.url} className="flex items-center gap-3 p-2.5 rounded-lg bg-[var(--color-surface-2)]/50 border border-[var(--color-border-subtle)] group">
-                <div className={`w-2 h-2 rounded-full shrink-0 ${r.online ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                <div className={`w-2 h-2 rounded-full shrink-0 ${r.online ? 'bg-[var(--color-success)]' : 'bg-[var(--color-danger)]'}`} />
                 <div className="flex-1 min-w-0">
                   <div className="text-[12px] font-mono text-[var(--color-text)] truncate">{r.url}</div>
-                  {r.statusCode && <div className="text-[10px] text-[var(--color-text-muted)] mt-0.5">HTTP {r.statusCode}</div>}
-                  {r.error && <div className="text-[10px] text-red-400 mt-0.5 truncate">{r.error}</div>}
+                  {r.statusCode && <div className="text-[12px] text-[var(--color-text-muted)] mt-0.5">HTTP {r.statusCode}</div>}
+                  {r.error && <div className="text-[12px] text-[var(--color-danger)] mt-0.5 truncate">{r.error}</div>}
                 </div>
                 <HealthBadge online={r.online} latency={r.latencyMs} />
-                <button onClick={() => setHealthUrls(prev => prev.filter(u => u !== r.url))} className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-text-muted)] hover:text-[var(--color-destructive)]">
+                <button type="button" aria-label={`Remove ${r.url}`} onClick={() => setHealthUrls(prev => prev.filter(u => u !== r.url))} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-within:opacity-100 transition-opacity text-[var(--color-text-2)] hover:text-[var(--color-danger)] p-1.5">
                   <Trash2 size={12} />
                 </button>
               </div>

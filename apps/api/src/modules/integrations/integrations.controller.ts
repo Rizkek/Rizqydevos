@@ -1,86 +1,93 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, HttpCode, HttpStatus, Logger, InternalServerErrorException } from '@nestjs/common'
-import { IntegrationsService } from './integrations.service'
-import { GithubService } from './github.service'
-import { VercelService } from './vercel.service'
-import { CreateIntegrationDto } from './dto/integration.dto'
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseEnumPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common'
+import { Throttle } from '@nestjs/throttler'
 import { AuthGuard } from '../../shared/guards/auth.guard'
 import { CurrentUser } from '../../shared/decorators/current-user.decorator'
+import { ConnectIntegrationDto, DeploymentsQueryDto, UpdateIntegrationDto } from './dto/integration.dto'
+import { GithubService } from './github.service'
+import { IntegrationConnectionService } from './integration-connection.service'
+import { IntegrationProvider } from './integration-provider'
+import { IntegrationsService } from './integrations.service'
+import { VercelService } from './vercel.service'
+
+const providerPipe = new ParseEnumPipe(IntegrationProvider)
+
+// Connecting calls GitHub or Vercel with a user-supplied token, so it gets a tighter limit than the global one.
+const CONNECT_LIMIT = { default: { limit: 10, ttl: 60_000 } }
 
 @Controller('integrations')
 @UseGuards(AuthGuard)
 export class IntegrationsController {
-  private readonly logger = new Logger(IntegrationsController.name)
-
   constructor(
     private readonly integrationsService: IntegrationsService,
+    private readonly connection: IntegrationConnectionService,
     private readonly githubService: GithubService,
     private readonly vercelService: VercelService,
   ) {}
 
   @Get()
-  async getIntegrations(@CurrentUser('id') userId: string) {
-    try {
-      const list = await this.integrationsService.getUserIntegrations(userId)
-      // omit sensitive tokens in response
-      return list.map(i => ({ provider: i.provider, enabled: i.enabled, id: i.id }))
-    } catch (error: any) {
-      this.logger.error(`Failed to get integrations for user ${userId}: ${error.message}`, error.stack)
-      throw new InternalServerErrorException('Failed to fetch integrations')
-    }
+  list(@CurrentUser('id') userId: string) {
+    return this.integrationsService.list(userId)
   }
 
   @Post(':provider')
+  @Throttle(CONNECT_LIMIT)
   @HttpCode(HttpStatus.OK)
-  async configure(
-    @Param('provider') provider: string,
-    @Body() dto: CreateIntegrationDto,
+  connect(
+    @Param('provider', providerPipe) provider: IntegrationProvider,
+    @Body() dto: ConnectIntegrationDto,
     @CurrentUser('id') userId: string,
   ) {
-    this.logger.log(`Configuring integration ${provider} for user ${userId}...`)
-    try {
-      dto.provider = provider
-      await this.integrationsService.upsert(userId, dto)
-      this.logger.log(`Successfully configured integration ${provider} for user ${userId}`)
-      return { success: true }
-    } catch (error: any) {
-      this.logger.error(`Failed to configure integration ${provider} for user ${userId}: ${error.message}`, error.stack)
-      throw new InternalServerErrorException(`Failed to configure ${provider} integration`)
-    }
+    return this.connection.connect(userId, provider, dto)
+  }
+
+  @Patch(':provider')
+  setEnabled(
+    @Param('provider', providerPipe) provider: IntegrationProvider,
+    @Body() dto: UpdateIntegrationDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.connection.setEnabled(userId, provider, dto.enabled)
   }
 
   @Delete(':provider')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(
-    @Param('provider') provider: string,
+  async disconnect(
+    @Param('provider', providerPipe) provider: IntegrationProvider,
     @CurrentUser('id') userId: string,
   ) {
-    this.logger.log(`Removing integration ${provider} for user ${userId}...`)
-    try {
-      await this.integrationsService.remove(userId, provider)
-      this.logger.log(`Successfully removed integration ${provider} for user ${userId}`)
-    } catch (error: any) {
-      this.logger.error(`Failed to remove integration ${provider} for user ${userId}: ${error.message}`, error.stack)
-      throw new InternalServerErrorException(`Failed to remove ${provider} integration`)
-    }
+    await this.connection.disconnect(userId, provider)
   }
 
   @Get('github/activity')
-  async getGithubActivity(@CurrentUser('id') userId: string) {
+  getGithubActivity(@CurrentUser('id') userId: string) {
     return this.githubService.getActivityFeed(userId)
   }
 
   @Get('github/prs')
-  async getGithubPRs(@CurrentUser('id') userId: string) {
+  getGithubPRs(@CurrentUser('id') userId: string) {
     return this.githubService.getPullRequests(userId)
   }
 
   @Get('github/repos')
-  async getGithubRepos(@CurrentUser('id') userId: string) {
+  getGithubRepos(@CurrentUser('id') userId: string) {
     return this.githubService.getRepositories(userId)
   }
 
   @Get('vercel/deployments')
-  async getVercelDeployments(@CurrentUser('id') userId: string) {
-    return this.vercelService.getDeployments(userId)
+  getVercelDeployments(@Query() query: DeploymentsQueryDto, @CurrentUser('id') userId: string) {
+    return this.vercelService.getDeployments(userId, query.limit)
   }
 }

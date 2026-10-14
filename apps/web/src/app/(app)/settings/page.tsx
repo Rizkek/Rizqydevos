@@ -3,20 +3,17 @@
 import * as React from 'react'
 import { PageHeader } from '@/components/shared/page-header'
 import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { IntegrationCard } from '@/components/settings/integration-card'
 import { useUIStore, type Theme, type AccentColor } from '@/stores/ui.store'
-import { Check, User, Keyboard, Paintbrush, Monitor, Link2, Loader2, Trash2 } from 'lucide-react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchApi } from '@/lib/api'
-import { Input } from '@/components/ui/input'
-import { toast } from 'sonner'
-import { createQueryOptions, queryKeys } from '@/lib/query'
+import { Check, User, Keyboard, Paintbrush, Monitor, Moon, Sun, Link2, type LucideIcon } from 'lucide-react'
+import { useSession } from '@/lib/auth-client'
+import { useIntegrations } from '@/lib/integrations'
 
-const themes: { id: Theme; label: string }[] = [
-  { id: 'dark', label: 'Dark' },
-  { id: 'light', label: 'Light' },
-  { id: 'system', label: 'System' },
+const themes: { id: Theme; label: string; icon: LucideIcon }[] = [
+  { id: 'dark', label: 'Dark', icon: Moon },
+  { id: 'light', label: 'Light', icon: Sun },
+  { id: 'system', label: 'System', icon: Monitor },
 ]
 
 const colors: { id: AccentColor; label: string; bgClass: string }[] = [
@@ -29,107 +26,74 @@ const colors: { id: AccentColor; label: string; bgClass: string }[] = [
 
 export default function SettingsPage() {
   const { theme, setTheme, accentColor, setAccentColor } = useUIStore()
-  const queryClient = useQueryClient()
-  
-  // Integrations state
-  const [githubToken, setGithubToken] = React.useState('')
-  const [vercelToken, setVercelToken] = React.useState('')
+  const { data: session, isPending: isLoadingSession } = useSession()
+  const { data: integrations = [], isLoading: isLoadingIntegrations, error: integrationsError } = useIntegrations()
 
-  const { data: integrations = [], isLoading: isLoadingIntegrations } = useQuery(
-    createQueryOptions(queryKeys.integrations, () => fetchApi<any[]>('/integrations'))
-  )
-
-  const saveIntegration = useMutation({
-    mutationFn: ({ provider, accessToken }: { provider: string, accessToken: string }) => 
-      fetchApi(`/integrations/${provider}`, {
-        method: 'POST',
-        body: JSON.stringify({ accessToken })
-      }),
-    onSuccess: async (_, variables) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.integrations })
-      setGithubToken('')
-      setVercelToken('')
-      toast.success(`Successfully connected to ${variables.provider}`)
-    },
-    onError: (error: any, variables) => {
-      toast.error(`Failed to connect ${variables.provider}: ${error.message || 'Unknown error'}`)
-    }
-  })
-
-  const removeIntegration = useMutation({
-    mutationFn: (provider: string) => 
-      fetchApi(`/integrations/${provider}`, { method: 'DELETE' }),
-    onSuccess: async (_, provider) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.integrations })
-      toast.success(`Successfully disconnected ${provider}`)
-    },
-    onError: (error: any, provider) => {
-      toast.error(`Failed to disconnect ${provider}: ${error.message || 'Unknown error'}`)
-    }
-  })
-
-  const isGithubConnected = integrations.some(i => i.provider === 'github')
-  const isVercelConnected = integrations.some(i => i.provider === 'vercel')
+  const displayName = session?.user.name || session?.user.email || ''
 
   return (
     <div className="p-[var(--spacing-page-pad)] max-w-4xl mx-auto w-full h-full flex flex-col">
-      <PageHeader 
-        title="Settings" 
+      <PageHeader
+        title="Settings"
         description="Manage your appearance, widgets, and account preferences."
       />
-      
+
       <div className="flex flex-col gap-8 overflow-y-auto pb-12">
-        
+
         {/* Appearance */}
         <section className="flex flex-col gap-4">
           <h2 className="text-[14px] font-semibold text-[var(--color-text)] flex items-center gap-2">
-            <Paintbrush size={16} className="text-[var(--color-accent)]" /> Appearance
+            <Paintbrush aria-hidden="true" size={16} className="text-[var(--color-accent)]" /> Appearance
           </h2>
           <Card className="p-5 flex flex-col gap-6">
-            
+
             {/* Theme */}
-            <div className="flex flex-col gap-3">
-              <label className="text-[13px] font-medium text-[var(--color-text)]">Theme</label>
+            <fieldset className="flex flex-col gap-3">
+              <legend className="mb-3 text-[13px] font-medium text-[var(--color-text)]">Theme</legend>
               <div className="grid grid-cols-3 gap-3">
                 {themes.map(t => (
-                  <button 
+                  <button
                     key={t.id}
+                    type="button"
+                    aria-pressed={theme === t.id}
                     onClick={() => setTheme(t.id)}
                     className={`flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all ${
-                      theme === t.id 
-                        ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]' 
-                        : 'border-[var(--color-border-subtle)] bg-[var(--color-surface)] text-[var(--color-text-2)] hover:border-[var(--color-border-strong)]'
+                      theme === t.id
+                        ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+                        : 'border-[var(--color-input-border)] bg-[var(--color-surface)] text-[var(--color-text-2)] hover:border-[var(--color-border-strong)]'
                     }`}
                   >
-                    <Monitor size={20} className="mb-2" />
+                    <t.icon aria-hidden="true" size={20} className="mb-2" />
                     <span className="text-[12px] font-medium">{t.label}</span>
                   </button>
                 ))}
               </div>
-            </div>
-            
+            </fieldset>
+
             {/* Accent Color */}
-            <div className="flex flex-col gap-3">
-              <label className="text-[13px] font-medium text-[var(--color-text)]">Accent Color</label>
+            <fieldset className="flex flex-col gap-3">
+              <legend className="mb-3 text-[13px] font-medium text-[var(--color-text)]">Accent color</legend>
               <div className="flex flex-wrap gap-3">
                 {colors.map(c => (
                   <button
                     key={c.id}
+                    type="button"
+                    aria-pressed={accentColor === c.id}
                     onClick={() => setAccentColor(c.id)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-md border-2 transition-all ${
-                      accentColor === c.id 
-                        ? 'border-[var(--color-border-strong)] bg-[var(--color-surface-2)] text-[var(--color-text)]' 
+                      accentColor === c.id
+                        ? 'border-[var(--color-border-strong)] bg-[var(--color-surface-2)] text-[var(--color-text)]'
                         : 'border-transparent bg-[var(--color-surface)] text-[var(--color-text-2)] hover:bg-[var(--color-surface-2)]'
                     }`}
                   >
-                    <div className={`w-4 h-4 rounded-full ${c.bgClass} flex items-center justify-center text-white`}>
+                    <div aria-hidden="true" className={`w-4 h-4 rounded-full ${c.bgClass} flex items-center justify-center text-white`}>
                       {accentColor === c.id && <Check size={10} />}
                     </div>
                     <span className="text-[13px] font-medium">{c.label}</span>
                   </button>
                 ))}
               </div>
-            </div>
+            </fieldset>
 
           </Card>
         </section>
@@ -137,141 +101,82 @@ export default function SettingsPage() {
         {/* Profile */}
         <section className="flex flex-col gap-4">
           <h2 className="text-[14px] font-semibold text-[var(--color-text)] flex items-center gap-2">
-            <User size={16} className="text-[var(--color-text-muted)]" /> Profile
+            <User aria-hidden="true" size={16} className="text-[var(--color-text-muted)]" /> Profile
           </h2>
-          <Card className="p-5 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-white font-bold text-lg">
-                R
+          <Card className="p-5 flex items-center gap-4">
+            {isLoadingSession ? (
+              <div role="status" className="flex items-center gap-4">
+                <span className="sr-only">Loading profile</span>
+                <Skeleton aria-hidden="true" className="w-12 h-12 rounded-full" />
+                <Skeleton aria-hidden="true" className="h-10 w-48" />
               </div>
-              <div>
-                <h3 className="text-[14px] font-bold text-[var(--color-text)]">Rizqy</h3>
-                <p className="text-[13px] text-[var(--color-text-2)]">dev@rizqy.me</p>
-              </div>
-            </div>
-            <Button variant="outline">Edit Profile</Button>
+            ) : session ? (
+              <>
+                <div aria-hidden="true" className="w-12 h-12 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-[var(--color-on-solid)] font-bold text-lg">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-[14px] font-bold text-[var(--color-text)]">{session.user.name || session.user.email}</p>
+                  {session.user.name && <p className="text-[13px] text-[var(--color-text-2)]">{session.user.email}</p>}
+                </div>
+              </>
+            ) : (
+              <p className="text-[13px] text-[var(--color-text-2)]">Profile unavailable. Sign in again.</p>
+            )}
           </Card>
         </section>
 
         {/* Integrations */}
         <section className="flex flex-col gap-4">
           <h2 className="text-[14px] font-semibold text-[var(--color-text)] flex items-center gap-2">
-            <Link2 size={16} className="text-[var(--color-text-muted)]" /> Integrations
+            <Link2 aria-hidden="true" size={16} className="text-[var(--color-text-muted)]" /> Integrations
           </h2>
           <Card className="p-5 flex flex-col gap-6">
-            
-            {/* GitHub */}
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-[13px] font-semibold text-[var(--color-text)]">GitHub</h3>
-                  <p className="text-[12px] text-[var(--color-text-muted)]">Connect your GitHub account for activity feeds and repo management.</p>
-                </div>
-                {isGithubConnected ? (
-                  <Badge variant="success" className="bg-[var(--color-success-muted)] text-[var(--color-success)] border-transparent">Connected</Badge>
-                ) : (
-                  <Badge variant="secondary" className="bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border-transparent">Not Connected</Badge>
-                )}
+            {isLoadingIntegrations ? (
+              <div role="status" className="flex flex-col gap-3">
+                <span className="sr-only">Loading integrations</span>
+                <Skeleton aria-hidden="true" className="h-24 w-full" />
+                <Skeleton aria-hidden="true" className="h-24 w-full" />
               </div>
-              {!isGithubConnected ? (
-                <form 
-                  className="flex gap-2 mt-2" 
-                  onSubmit={(e) => { e.preventDefault(); saveIntegration.mutate({ provider: 'github', accessToken: githubToken }); }}
-                >
-                  <Input 
-                    type="password" 
-                    placeholder="Personal Access Token (classic or fine-grained)" 
-                    value={githubToken}
-                    onChange={e => setGithubToken(e.target.value)}
-                    className="flex-1 bg-[var(--color-surface)]"
-                  />
-                  <Button type="submit" disabled={!githubToken || saveIntegration.isPending}>
-                    {saveIntegration.isPending ? <Loader2 size={14} className="animate-spin" /> : 'Connect'}
-                  </Button>
-                </form>
-              ) : (
-                <div className="flex justify-end mt-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-[var(--color-danger)] border-[var(--color-danger-muted)] hover:bg-[var(--color-danger-muted)]"
-                    onClick={() => removeIntegration.mutate('github')}
-                    disabled={removeIntegration.isPending}
-                  >
-                    <Trash2 size={14} className="mr-2" /> Disconnect
-                  </Button>
-                </div>
-              )}
-            </div>
+            ) : integrationsError ? (
+              <p role="alert" className="text-[13px] text-[var(--color-danger)]">
+                Could not load integrations. Reload the page to try again.
+              </p>
+            ) : (
+              <>
+                <IntegrationCard
+                  provider="github"
+                  description="Activity feed and repositories on the dashboard and Developer page."
+                  tokenHint="Create a personal access token in your GitHub settings. It is stored encrypted."
+                  integration={integrations.find(i => i.provider === 'github')}
+                />
 
-            <div className="h-px bg-[var(--color-border-subtle)] w-full" />
+                <div className="h-px bg-[var(--color-border-subtle)] w-full" />
 
-            {/* Vercel */}
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-[13px] font-semibold text-[var(--color-text)]">Vercel</h3>
-                  <p className="text-[12px] text-[var(--color-text-muted)]">Connect your Vercel account to view deployments and logs.</p>
-                </div>
-                {isVercelConnected ? (
-                  <Badge variant="success" className="bg-[var(--color-success-muted)] text-[var(--color-success)] border-transparent">Connected</Badge>
-                ) : (
-                  <Badge variant="secondary" className="bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border-transparent">Not Connected</Badge>
-                )}
-              </div>
-              {!isVercelConnected ? (
-                <form 
-                  className="flex gap-2 mt-2" 
-                  onSubmit={(e) => { e.preventDefault(); saveIntegration.mutate({ provider: 'vercel', accessToken: vercelToken }); }}
-                >
-                  <Input 
-                    type="password" 
-                    placeholder="Vercel Access Token" 
-                    value={vercelToken}
-                    onChange={e => setVercelToken(e.target.value)}
-                    className="flex-1 bg-[var(--color-surface)]"
-                  />
-                  <Button type="submit" disabled={!vercelToken || saveIntegration.isPending}>
-                    {saveIntegration.isPending ? <Loader2 size={14} className="animate-spin" /> : 'Connect'}
-                  </Button>
-                </form>
-              ) : (
-                <div className="flex justify-end mt-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-[var(--color-danger)] border-[var(--color-danger-muted)] hover:bg-[var(--color-danger-muted)]"
-                    onClick={() => removeIntegration.mutate('vercel')}
-                    disabled={removeIntegration.isPending}
-                  >
-                    <Trash2 size={14} className="mr-2" /> Disconnect
-                  </Button>
-                </div>
-              )}
-            </div>
-
+                <IntegrationCard
+                  provider="vercel"
+                  description="Recent deployments on the dashboard and Infrastructure page."
+                  tokenHint="Create an access token in your Vercel account settings. It is stored encrypted."
+                  integration={integrations.find(i => i.provider === 'vercel')}
+                  withTeamId
+                />
+              </>
+            )}
           </Card>
         </section>
 
         {/* Shortcuts */}
         <section className="flex flex-col gap-4">
           <h2 className="text-[14px] font-semibold text-[var(--color-text)] flex items-center gap-2">
-            <Keyboard size={16} className="text-[var(--color-text-muted)]" /> Keyboard Shortcuts
+            <Keyboard aria-hidden="true" size={16} className="text-[var(--color-text-muted)]" /> Keyboard Shortcuts
           </h2>
           <Card className="p-0 overflow-hidden divide-y divide-[var(--color-border-subtle)]">
-            {[
-              { action: 'Open Command Palette', key: '⌘ K' },
-              { action: 'Toggle Sidebar', key: '⌘ B' },
-              { action: 'Go to Dashboard', key: 'G then D' },
-              { action: 'Go to Workspace', key: 'G then W' },
-            ].map(shortcut => (
-              <div key={shortcut.action} className="flex items-center justify-between p-4">
-                <span className="text-[13px] text-[var(--color-text)] font-medium">{shortcut.action}</span>
-                <Badge variant="secondary" className="font-mono text-[11px] px-2 py-1 h-auto rounded-[var(--radius-sm)]">
-                  {shortcut.key}
-                </Badge>
-              </div>
-            ))}
+            <div className="flex items-center justify-between p-4">
+              <span className="text-[13px] text-[var(--color-text)] font-medium">Open command palette</span>
+              <kbd className="font-mono text-[12px] px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-3)] text-[var(--color-text-2)]">
+                Ctrl K or ⌘ K
+              </kbd>
+            </div>
           </Card>
         </section>
 

@@ -1,5 +1,7 @@
 import 'reflect-metadata'
 import { NestFactory } from '@nestjs/core'
+import { NestExpressApplication } from '@nestjs/platform-express'
+import { ConfigService } from '@nestjs/config'
 import { ValidationPipe } from '@nestjs/common'
 import { AppModule } from './app.module'
 import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
@@ -9,9 +11,13 @@ import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   })
+
+  // Required for per-client rate limiting behind a proxy (see TRUST_PROXY_HOPS).
+  const config = app.get(ConfigService)
+  app.set('trust proxy', config.get<number>('TRUST_PROXY_HOPS', 0))
 
   const logger = await app.resolve(PinoLoggerService)
   app.useLogger(logger)
@@ -22,7 +28,7 @@ async function bootstrap() {
 
   // CORS — strict allowlist
   app.enableCors({
-    origin: process.env.APP_URL,
+    origin: config.getOrThrow<string>('APP_URL'),
     credentials: true,
   })
 

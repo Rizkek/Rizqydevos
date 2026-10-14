@@ -1,3 +1,5 @@
+> **Update 2026-10-14**: the module set was narrowed. See [docs/vision/06-scope-update-2026-10.md](../vision/06-scope-update-2026-10.md); modules listed here that are not in its table are out of scope.
+
 # Module Breakdown
 
 This document defines each module in detail:

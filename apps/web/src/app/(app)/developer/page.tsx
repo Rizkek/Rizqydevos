@@ -5,10 +5,13 @@ import { Card } from '@/components/ui/card'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchApi } from '@/lib/api'
 import { createQueryOptions, queryKeys } from '@/lib/query'
-import { Loader2, GitPullRequest, AlertCircle, Box, Play, Square, RefreshCcw, Trash2 } from 'lucide-react'
-import Link from 'next/link'
+import { GitPullRequest, Box, Play, Square, RefreshCcw, Trash2 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { IntegrationNotice } from '@/components/shared/integration-notice'
+import { ListSkeleton } from '@/components/shared/list-skeleton'
+import { useGithubActivity } from '@/lib/integrations'
+import { formatTimestamp } from '@/lib/format'
 
 
 export default function DeveloperPage() {
@@ -37,15 +40,7 @@ export default function DeveloperPage() {
 }
 
 function GithubTab() {
-  const { data: events, isLoading, error } = useQuery(
-    createQueryOptions(queryKeys.githubActivity, async () => {
-      try {
-        return await fetchApi<any[]>('/integrations/github/activity')
-      } catch (err: any) {
-        throw new Error(err.message || 'Failed to fetch GitHub activity. Ensure you have configured your token in Settings.')
-      }
-    })
-  )
+  const { data: events, isLoading, error, refetch } = useGithubActivity()
 
   return (
     <Card className="flex flex-col h-full bg-[var(--color-surface)] border-[var(--color-border-subtle)] overflow-hidden">
@@ -54,35 +49,31 @@ function GithubTab() {
           Activity Feed
         </h3>
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4">
         {isLoading ? (
-          <div className="flex items-center justify-center h-full text-[var(--color-text-2)] gap-2">
-            <Loader2 size={16} className="animate-spin" /> Fetching activity...
-          </div>
+          <ListSkeleton label="Loading GitHub activity" rows={5} />
         ) : error ? (
-          <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)] gap-3">
-            <AlertCircle size={24} className="text-[var(--color-text-2)]" />
-            <span className="text-[13px]">{error.message}</span>
-            <Link href="/settings" className="px-3 py-1.5 text-[12px] bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded hover:bg-[var(--color-surface-3)] transition-colors">
-              Configure Integration
-            </Link>
-          </div>
-        ) : events?.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-[var(--color-text-muted)] text-[13px]">
-            No recent activity found.
-          </div>
+          <IntegrationNotice error={error} provider="github" onRetry={() => void refetch()} className="h-full" />
+        ) : !events || events.length === 0 ? (
+          <p className="text-center text-[13px] text-[var(--color-text-2)]">No recent activity found.</p>
         ) : (
-          events?.map((event: any) => (
-            <div key={event.id} className="flex gap-3 text-[13px] p-3 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors border border-transparent hover:border-[var(--color-border-subtle)]">
-              <img src={event.actor.avatarUrl} alt={event.actor.login} className="w-8 h-8 rounded-full border border-[var(--color-border)]" />
-              <div>
-                <p className="text-[var(--color-text)]">
-                  <span className="font-semibold">{event.actor.login}</span> {formatEventType(event.type)} <span className="font-medium">{event.repo.name}</span>
-                </p>
-                <p className="text-[var(--color-text-muted)] mt-1">{new Date(event.createdAt).toLocaleString()}</p>
-              </div>
-            </div>
-          ))
+          <ul className="space-y-4">
+            {events.map((event) => (
+              <li key={event.id} className="flex gap-3 text-[13px] p-3 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors border border-transparent hover:border-[var(--color-border-subtle)]">
+                <img src={event.actor.avatarUrl} alt="" width={32} height={32} loading="lazy" className="w-8 h-8 rounded-full border border-[var(--color-border)]" />
+                <div>
+                  <p className="text-[var(--color-text)]">
+                    <span className="font-semibold">{event.actor.login}</span> {formatEventType(event.type ?? '')} <span className="font-medium">{event.repo.name}</span>
+                  </p>
+                  {event.createdAt && (
+                    <time dateTime={event.createdAt} className="block text-[var(--color-text-2)] mt-1">
+                      {formatTimestamp(event.createdAt)}
+                    </time>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </Card>
@@ -119,7 +110,7 @@ function DockerTab() {
       <div className="flex-1 overflow-y-auto p-4">
         {isLoading ? (
           <div className="flex items-center justify-center h-full text-[var(--color-text-2)] gap-2">
-            <Loader2 size={16} className="animate-spin" /> Fetching containers...
+            <span role="status">Fetching containers...</span>
           </div>
         ) : error ? (
           <div className="flex items-center justify-center h-full text-[var(--color-text-muted)] text-[13px]">
@@ -136,16 +127,16 @@ function DockerTab() {
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-[14px] text-[var(--color-text)]">{c.name}</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono border uppercase tracking-wider ${
+                    <span className={`px-2 py-0.5 rounded text-[12px] font-mono border uppercase tracking-wider ${
                       c.state === 'running' 
-                        ? 'bg-green-500/10 text-green-500 border-green-500/20' 
+                        ? 'bg-[var(--color-success-muted)] text-[var(--color-success)] border-[var(--color-success)]/30' 
                         : 'bg-[var(--color-surface-3)] text-[var(--color-text-muted)] border-[var(--color-border)]'
                     }`}>
                       {c.state}
                     </span>
                   </div>
                   <span className="text-[12px] text-[var(--color-text-2)] font-mono">{c.image}</span>
-                  <span className="text-[11px] text-[var(--color-text-muted)]">{c.status}</span>
+                  <span className="text-[12px] text-[var(--color-text-muted)]">{c.status}</span>
                 </div>
                 
                 <div className="flex items-center gap-2 shrink-0">

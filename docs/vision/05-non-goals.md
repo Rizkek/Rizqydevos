@@ -1,3 +1,5 @@
+> **Update 2026-10-14**: see [06-scope-update-2026-10.md](./06-scope-update-2026-10.md). Public registration is now enforced in code (only `OWNER_EMAIL` can create an account), and Docker management, Analytics, Automation and paid AI features are out of scope.
+
 # Non-Goals
 
 This document defines what DevOS is **not**. These boundaries are as

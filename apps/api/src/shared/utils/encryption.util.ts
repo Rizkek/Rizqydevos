@@ -5,11 +5,24 @@ const KEY_LENGTH_BYTES = 32
 
 const getSecretKey = (): Buffer => {
   const key = process.env.ENCRYPTION_KEY
-  if (!key || Buffer.byteLength(key, 'utf8') !== KEY_LENGTH_BYTES) {
-    throw new Error('ENCRYPTION_KEY must be exactly 32 UTF-8 bytes')
+  if (!key) {
+    throw new Error('ENCRYPTION_KEY must be configured')
   }
 
-  return Buffer.from(key, 'utf8')
+  if (Buffer.byteLength(key, 'utf8') === KEY_LENGTH_BYTES) {
+    return Buffer.from(key, 'utf8')
+  }
+
+  if (/^[0-9a-fA-F]{64}$/.test(key)) {
+    return Buffer.from(key, 'hex')
+  }
+
+  if (/^[A-Za-z0-9+/]{43}={0,1}$/.test(key)) {
+    const decoded = Buffer.from(key, 'base64')
+    if (decoded.length === KEY_LENGTH_BYTES) return decoded
+  }
+
+  throw new Error('ENCRYPTION_KEY must encode exactly 32 bytes')
 }
 
 export function encrypt(text: string): string {

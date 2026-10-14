@@ -217,3 +217,34 @@ Opacity is used for:
 
 *Last updated: 2026-07-17*
 *Status: Foundation*
+
+---
+
+## Contrast-checked values (updated 2026-10-14)
+
+The values above were the original sketch. The shipped tokens live in `apps/web/src/app/globals.css` and are verified
+by `apps/web/src/app/globals.contrast.test.ts`, which reads that file and checks every theme and accent combination.
+When this document and `globals.css` disagree, `globals.css` wins.
+
+| Token | Dark | Light | Why it changed |
+|---|---|---|---|
+| `--color-text-muted` | 62% lightness | 42% | was 45% / 55%: 3.4 to 4.0:1, below the 4.5:1 text minimum |
+| `--color-accent` (violet) | hsl(262 83% 72%) | hsl(262 83% 50%) | dark was 68%: only 4.2:1 as text on the lightest surface |
+| `--color-danger` / `--color-info` | 65% lightness | 42% | readable as text on every surface |
+| `--color-success` / `--color-warning` | unchanged | dark fills (27% / 30%) | light theme had no overrides, so they failed on white |
+| `--color-on-solid` (new) | hsl(0 0% 6%) | white | text on solid accent and status fills; white on the bright dark-theme fills was 3.7:1 |
+| `--color-input-border` (new) | 42% | 52% | form control boundaries need 3:1 (WCAG 1.4.11); `--color-border` is decorative only |
+| `--color-focus-ring` | `var(--color-accent)` | same | was 50% transparent and fell below 3:1 |
+
+### Accent choices
+
+Settings offers five accents (violet, emerald, cyan, amber, rose). They are applied with `<html data-accent="...">`
+and each has a dark and a light value in `globals.css`. Before 2026-10-14 the attribute was set but no CSS used it,
+so the choice had no effect.
+
+### Rules that follow
+
+- Text on a solid accent or status background uses `--color-on-solid`, never `white`.
+- Status colors are used through tokens (`--color-success` and friends), never raw palette classes such as `text-yellow-400`: those do not adapt to the light theme.
+- Use `--color-input-border` for inputs, selects, and option buttons; `--color-border` for dividers and cards.
+- Text is never smaller than 12px.

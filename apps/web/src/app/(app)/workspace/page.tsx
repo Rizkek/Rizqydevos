@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Plus, CheckCircle2, Circle, Search, Clock, Tag, Loader2, Save } from 'lucide-react'
+import { Plus, CheckCircle2, Circle, Search, Clock, Tag, Save } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchApi } from '@/lib/api'
 import { createQueryOptions, queryKeys } from '@/lib/query'
@@ -141,11 +141,10 @@ export default function WorkspacePage() {
                 onChange={e => setNewTaskTitle(e.target.value)}
                 placeholder="What needs to be done?" 
                 className="bg-[var(--color-surface)]"
-                disabled={createMutation.isPending}
-              />
+                disabled={createMutation.isPending} aria-label="What needs to be done?" />
               <Button type="submit" disabled={createMutation.isPending || !newTaskTitle.trim()}>
-                {createMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                <span className="ml-2">Add</span>
+                <Plus aria-hidden="true" size={16} />
+                <span className="ml-2">{createMutation.isPending ? 'Adding…' : 'Add'}</span>
               </Button>
             </form>
           </div>
@@ -156,15 +155,14 @@ export default function WorkspacePage() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search tasks..." 
-                className="pl-9 h-8 text-[13px] bg-transparent border-transparent shadow-none px-0 focus-visible:ring-0"
-              />
+                className="pl-9 h-8 text-[13px] bg-transparent border-transparent shadow-none px-0 focus-visible:ring-0" aria-label="Search tasks" />
             </div>
           </div>
           
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
             {isLoading ? (
               <div className="flex justify-center p-8 text-[var(--color-text-muted)]">
-                <Loader2 className="animate-spin h-6 w-6" />
+                <span role="status" className="text-[13px] text-[var(--color-text-2)]">Loading…</span>
               </div>
             ) : filteredTodos.length === 0 ? (
               <div className="text-center p-8 text-[13px] text-[var(--color-text-muted)]">
@@ -189,11 +187,11 @@ export default function WorkspacePage() {
                       {todo.title}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant={todo.priority === 'URGENT' ? 'destructive' : todo.priority === 'HIGH' ? 'warning' : 'secondary'} className="h-5 text-[10px]">
+                      <Badge variant={todo.priority === 'URGENT' ? 'destructive' : todo.priority === 'HIGH' ? 'warning' : 'secondary'} className="h-5 text-[12px]">
                         {todo.priority}
                       </Badge>
                       {todo.tags.map(tag => (
-                        <span key={tag} className="flex items-center text-[11px] text-[var(--color-text-muted)]">
+                        <span key={tag} className="flex items-center text-[12px] text-[var(--color-text-muted)]">
                           <Tag size={10} className="mr-1" /> {tag}
                         </span>
                       ))}
@@ -211,9 +209,9 @@ export default function WorkspacePage() {
             <h3 className="text-[13px] font-semibold text-[var(--color-text)] flex items-center gap-2">
               Scratchpad
             </h3>
-            <span className="text-[11px] text-[var(--color-text-muted)] flex items-center gap-1">
+            <span className="text-[12px] text-[var(--color-text-muted)] flex items-center gap-1">
               {isSavingNote ? (
-                <><Loader2 size={12} className="animate-spin" /> Saving...</>
+                <><span role="status">Saving...</span></>
               ) : (
                 <><Save size={12} /> Auto-saved to API</>
               )}
@@ -224,8 +222,7 @@ export default function WorkspacePage() {
             onChange={handleNoteChange}
             placeholder="Type your thoughts here... Markdown is supported."
             className="flex-1 w-full p-4 bg-transparent resize-none outline-none text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] font-mono leading-relaxed"
-            spellCheck={false}
-          />
+            spellCheck={false} aria-label="Type your thoughts here... Markdown is supported." />
         </Card>
 
       </div>

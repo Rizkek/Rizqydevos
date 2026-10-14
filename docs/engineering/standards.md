@@ -205,10 +205,10 @@ function UserMenu({ user }: { user: User | null }) {
 
 ```typescript
 // ✅ All API calls go through the API client, not fetch directly
-import { api } from '@/lib/api/client'
-const data = await api.get('/github/activity')
+import { fetchApi } from '@/lib/api'
+const data = await fetchApi<GithubEvent[]>('/integrations/github/activity')
 
-// ✅ All query keys defined in a keys factory file
+// ✅ All query keys defined in a keys factory file (src/lib/query.ts: queryKeys)
 // ✅ Error handling is never swallowed silently
 
 // ❌ No direct fetch() in components
@@ -223,7 +223,9 @@ const data = await api.get('/github/activity')
 ```
 components/ui/           ← Only shadcn-generated files. Do not manually edit.
 components/layout/       ← Max 5 files. Structural only.
-features/[name]/         ← All code for one feature lives here.
+components/[area]/       ← Feature components, grouped by area (dashboard, settings, layout, shared).
+lib/                     ← Per-feature data hooks and helpers live beside the API client (e.g. lib/integrations.ts).
+(There is no features/ folder; do not create one without an agreed migration.)
 lib/                     ← No React components. Pure utilities.
 types/                   ← No implementation logic. Types only.
 stores/                  ← No async operations. Pure state.
@@ -284,7 +286,7 @@ describe('useGitHubActivity', () => {
 ### Before Submitting a PR
 
 - [ ] TypeScript compiles with zero errors
-- [ ] All tests pass (`pnpm test`)
+- [ ] All tests pass (`bun run test`; browser tests: `bun run build`, then `bun run --cwd apps/web test:e2e`)
 - [ ] No console.log left in production code
 - [ ] New components have proper TypeScript props
 - [ ] New API endpoints have validation

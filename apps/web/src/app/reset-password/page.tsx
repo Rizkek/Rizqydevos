@@ -1,17 +1,19 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Eye, EyeOff, Loader2, LockKeyhole } from 'lucide-react'
 import { toast } from 'sonner'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { PasswordField } from '@/components/ui/text-field'
+import { AuthShell } from '@/components/auth/auth-shell'
 import { resetPassword } from '@/lib/auth-client'
+
+const PASSWORD_HINT = 'Use at least 8 characters, with one letter and one number.'
 
 export default function ResetPasswordPage() {
   return (
-    <React.Suspense fallback={<ResetPasswordShell />}> 
+    <React.Suspense fallback={<AuthShell title="Reset password" />}>
       <ResetPasswordForm />
     </React.Suspense>
   )
@@ -19,86 +21,91 @@ export default function ResetPasswordPage() {
 
 function ResetPasswordForm() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const token = searchParams.get('token')
+  const token = useSearchParams().get('token')
   const [password, setPassword] = React.useState('')
   const [confirmPassword, setConfirmPassword] = React.useState('')
-  const [showPassword, setShowPassword] = React.useState(false)
+  const [revealed, setRevealed] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
+  const [errors, setErrors] = React.useState<{ password?: string; confirmPassword?: string; form?: string }>({})
+  const passwordRef = React.useRef<HTMLInputElement>(null)
+  const confirmPasswordRef = React.useRef<HTMLInputElement>(null)
 
-  const isValidPassword = password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password)
+  if (!token) {
+    return (
+      <AuthShell title="Reset link not valid" description="This password reset link is incomplete or has expired.">
+        <Button asChild>
+          <Link href="/login">Request a new link</Link>
+        </Button>
+      </AuthShell>
+    )
+  }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!token) {
-      toast.error('This password reset link is invalid or incomplete.')
-      return
-    }
-    if (!isValidPassword) {
-      toast.error('Password must be at least 8 characters and include a letter and a number.')
+    if (loading) return
+
+    const isStrong = password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password)
+    if (!isStrong) {
+      setErrors({ password: PASSWORD_HINT })
+      passwordRef.current?.focus()
       return
     }
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match.')
+      setErrors({ confirmPassword: 'The passwords do not match.' })
+      confirmPasswordRef.current?.focus()
       return
     }
 
+    setErrors({})
     setLoading(true)
     try {
       const { error } = await resetPassword({ newPassword: password, token })
       if (error) {
-        toast.error(error.message || 'Unable to reset password.')
+        setErrors({ form: error.message || 'Could not reset the password. Request a new link and try again.' })
         return
       }
       toast.success('Password updated. You can now sign in.')
       router.push('/login')
     } catch {
-      toast.error('Unable to reset password. Please request a new link.')
+      setErrors({ form: 'Could not reset the password. Request a new link and try again.' })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 bg-[var(--color-bg)]">
-      <Card className="w-full max-w-md p-8 space-y-6 bg-[var(--color-surface)] border-white/10">
-        <div className="text-center space-y-2">
-          <LockKeyhole className="mx-auto text-[var(--color-accent)]" size={32} />
-          <h1 className="text-2xl font-bold text-[var(--color-text)]">Reset password</h1>
-          <p className="text-sm text-[var(--color-text-muted)]">Create a new password for your DevOS account.</p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="relative">
-            <Input
-              required
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={event => setPassword(event.target.value)}
-              placeholder="New password"
-              className="h-11 pr-11"
-              aria-label="New password"
-            />
-            <button type="button" onClick={() => setShowPassword(value => !value)} className="absolute right-3 top-3 text-[var(--color-text-muted)]" aria-label={showPassword ? 'Hide password' : 'Show password'}>
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-          <Input required type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} placeholder="Confirm new password" aria-label="Confirm new password" />
-          <p className="text-xs text-[var(--color-text-muted)]">Use at least 8 characters with one letter and one number.</p>
-          <Button type="submit" disabled={loading || !token} className="w-full">
-            {loading ? <Loader2 className="animate-spin" size={18} /> : 'Update password'}
-          </Button>
-        </form>
-      </Card>
-    </main>
-  )
-}
-
-function ResetPasswordShell() {
-  return (
-    <main className="min-h-screen flex items-center justify-center p-4 bg-[var(--color-bg)]">
-      <Card className="w-full max-w-md p-8 bg-[var(--color-surface)] border-white/10">
-        <Loader2 className="mx-auto animate-spin text-[var(--color-accent)]" size={24} />
-      </Card>
-    </main>
+    <AuthShell title="Reset password" description="Choose a new password for your DevOS account.">
+      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <PasswordField
+          ref={passwordRef}
+          label="New password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          error={errors.password}
+          hint={PASSWORD_HINT}
+          revealed={revealed}
+          onRevealedChange={setRevealed}
+        />
+        <PasswordField
+          ref={confirmPasswordRef}
+          label="Confirm new password"
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+          error={errors.confirmPassword}
+          revealed={revealed}
+          onRevealedChange={setRevealed}
+        />
+        {errors.form && (
+          <p role="alert" className="text-[13px] text-[var(--color-danger)]">
+            {errors.form}
+          </p>
+        )}
+        <Button type="submit" size="lg" aria-disabled={loading} className="w-full">
+          {loading ? 'Updating…' : 'Update password'}
+        </Button>
+      </form>
+    </AuthShell>
   )
 }

@@ -3,22 +3,16 @@
 import * as React from 'react'
 import { Card } from '@/components/ui/card'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2, Server, Cloud, AlertCircle, ArrowUpRight, Activity } from 'lucide-react'
+import { Server, Cloud, ArrowUpRight } from 'lucide-react'
 
 import { fetchApi } from '@/lib/api'
 import { createQueryOptions, queryKeys } from '@/lib/query'
-import Link from 'next/link'
+import { IntegrationNotice } from '@/components/shared/integration-notice'
+import { ListSkeleton } from '@/components/shared/list-skeleton'
+import { useVercelDeployments } from '@/lib/integrations'
 
 export default function InfrastructurePage() {
-  const { data: deployments, isLoading: isLoadingDeployments, error: vercelError } = useQuery(
-    createQueryOptions(queryKeys.vercelDeployments, async () => {
-      try {
-        return await fetchApi<any[]>('/integrations/vercel/deployments')
-      } catch (err: any) {
-        throw new Error(err.message || 'Failed to fetch Vercel deployments. Ensure you have configured your token.')
-      }
-    })
-  )
+  const { data: deployments, isLoading: isLoadingDeployments, error: vercelError, refetch: refetchDeployments } = useVercelDeployments()
 
   const { data: healthChecks, isLoading: isLoadingHealth } = useQuery({
     ...createQueryOptions(queryKeys.healthChecks, () => fetchApi<any[]>('/monitoring/health/batch?urls=https://vercel.com,https://github.com,https://api.github.com,https://registry.npmjs.org')),
@@ -43,47 +37,45 @@ export default function InfrastructurePage() {
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {isLoadingDeployments ? (
-              <div className="flex items-center justify-center h-full text-[var(--color-text-2)] gap-2">
-                <Loader2 size={16} className="animate-spin" /> Fetching deployments...
-              </div>
+              <ListSkeleton label="Loading deployments" rows={5} />
             ) : vercelError ? (
-              <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)] gap-3">
-                <AlertCircle size={24} className="text-[var(--color-text-2)]" />
-                <span className="text-[13px]">{vercelError.message}</span>
-                <Link href="/settings" className="px-3 py-1.5 text-[12px] bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded hover:bg-[var(--color-surface-3)] transition-colors">
-                  Configure Integration
-                </Link>
-              </div>
-            ) : deployments?.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-[var(--color-text-muted)] text-[13px]">
-                No recent deployments found.
-              </div>
+              <IntegrationNotice error={vercelError} provider="vercel" onRetry={() => void refetchDeployments()} className="h-full" />
+            ) : !deployments || deployments.length === 0 ? (
+              <p className="text-center text-[13px] text-[var(--color-text-2)]">No recent deployments found.</p>
             ) : (
-              deployments?.map((dep: any) => (
-                <a 
-                  key={dep.id} 
-                  href={`https://${dep.url}`} 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] border border-[var(--color-border-subtle)] transition-colors group"
-                >
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[13px] font-medium text-[var(--color-text)] flex items-center gap-2">
-                      {dep.name}
-                      <span className={`w-2 h-2 rounded-full ${dep.state === 'READY' ? 'bg-green-500' : dep.state === 'ERROR' ? 'bg-red-500' : 'bg-yellow-500'}`} />
-                    </span>
-                    <span className="text-[12px] text-[var(--color-text-muted)] font-mono">
-                      {dep.url}
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="text-[11px] text-[var(--color-text-muted)] px-1.5 py-0.5 rounded border border-[var(--color-border)] bg-[var(--color-bg)] uppercase">
-                      {dep.project}
-                    </span>
-                    <ArrowUpRight size={14} className="text-[var(--color-text-2)] opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </a>
-              ))
+              <ul className="space-y-3">
+                {deployments.map((dep) => (
+                  <li key={dep.id}>
+                    <a
+                      href={dep.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] border border-[var(--color-border-subtle)] transition-colors group"
+                    >
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[13px] font-medium text-[var(--color-text)]">
+                          {dep.name}
+                          <span className="sr-only"> (opens in a new tab)</span>
+                        </span>
+                        <span className="text-[12px] text-[var(--color-text-2)] font-mono">{dep.url}</span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[12px] text-[var(--color-text-2)] px-1.5 py-0.5 rounded border border-[var(--color-border)] bg-[var(--color-bg)] uppercase">
+                          {dep.environment}
+                        </span>
+                        <span className="flex items-center gap-1.5 text-[12px] text-[var(--color-text-2)]">
+                          <span
+                            aria-hidden="true"
+                            className={`w-2 h-2 rounded-full ${dep.state === 'READY' ? 'bg-[var(--color-success)]' : dep.state === 'ERROR' ? 'bg-[var(--color-danger)]' : 'bg-[var(--color-warning)]'}`}
+                          />
+                          {dep.state ?? 'UNKNOWN'}
+                        </span>
+                        <ArrowUpRight size={14} aria-hidden="true" className="text-[var(--color-text-2)] opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity" />
+                      </div>
+                    </a>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </Card>
@@ -95,14 +87,14 @@ export default function InfrastructurePage() {
               <Server size={16} className="text-[var(--color-text-2)]" />
               Service Health
             </h3>
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-green-500/10 text-green-500 border border-green-500/20">
+            <span className="px-2 py-0.5 rounded text-[12px] font-mono bg-[var(--color-success-muted)] text-[var(--color-success)] border border-[var(--color-success)]/30">
               {healthChecks?.some(h => h.status !== 'up') ? 'DEGRADED' : 'ALL SYSTEMS NOMINAL'}
             </span>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {isLoadingHealth ? (
               <div className="flex items-center justify-center h-full text-[var(--color-text-2)] gap-2">
-                <Loader2 size={16} className="animate-spin" /> Checking health...
+                <span role="status">Checking health...</span>
               </div>
             ) : healthChecks?.length === 0 ? (
               <div className="flex items-center justify-center h-full text-[var(--color-text-muted)] text-[13px]">
@@ -113,11 +105,11 @@ export default function InfrastructurePage() {
                 <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border-subtle)]">
                   <div className="flex flex-col gap-1">
                     <span className="text-[13px] font-medium text-[var(--color-text)]">{hc.url}</span>
-                    <span className="text-[11px] text-[var(--color-text-muted)]">{hc.statusText || 'OK'}</span>
+                    <span className="text-[12px] text-[var(--color-text-muted)]">{hc.statusText || 'OK'}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-[11px] font-mono text-[var(--color-text-muted)]">{hc.responseTime}ms</span>
-                    <span className={`w-2.5 h-2.5 rounded-full ${hc.status === 'up' ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <span className="text-[12px] font-mono text-[var(--color-text-muted)]">{hc.responseTime}ms</span>
+                    <span className={`w-2.5 h-2.5 rounded-full ${hc.status === 'up' ? 'bg-[var(--color-success)]' : 'bg-[var(--color-danger)]'}`} />
                   </div>
                 </div>
               ))

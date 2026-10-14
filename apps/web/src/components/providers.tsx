@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { Toaster } from 'sonner'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
+import { MotionConfig } from 'motion/react'
 import { useUIStore } from '@/stores/ui.store'
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -44,7 +45,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <NuqsAdapter>
-        {children}
+        {/* The CSS reduced-motion rule cannot reach JS-driven animations, so motion needs its own switch. */}
+        <MotionConfig reducedMotion="user">{children}</MotionConfig>
         <Toaster 
           position="bottom-right" 
           toastOptions={{

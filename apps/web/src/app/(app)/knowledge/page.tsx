@@ -6,11 +6,12 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Search, Code2, Copy, Bookmark, ExternalLink, Loader2, X, Trash2, Edit2 } from 'lucide-react'
+import { Plus, Search, Code2, Copy, Bookmark, ExternalLink, X, Trash2, Edit2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchApi } from '@/lib/api'
 import { Textarea } from '@/components/ui/textarea'
 import { createQueryOptions, queryKeys } from '@/lib/query'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 
 type Snippet = {
   id: string
@@ -140,7 +141,7 @@ export default function KnowledgePage() {
           </Card>
           
           <div className="px-4">
-            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">Languages</h4>
+            <h4 className="text-[12px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">Languages</h4>
             <div className="flex flex-wrap gap-2">
               <Badge 
                 variant={selectedLang === null ? 'default' : 'outline'} 
@@ -171,14 +172,13 @@ export default function KnowledgePage() {
               value={search}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
               placeholder="Search snippets..." 
-              className="pl-9 bg-[var(--color-surface)] w-full max-w-md"
-            />
+              className="pl-9 bg-[var(--color-surface)] w-full max-w-md" aria-label="Search snippets" />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto pb-8">
             {isLoading ? (
               <div className="col-span-1 md:col-span-2 flex items-center justify-center py-12">
-                <Loader2 className="animate-spin text-[var(--color-text-muted)] h-8 w-8" />
+                <span role="status" className="text-[13px] text-[var(--color-text-2)]">Loading…</span>
               </div>
             ) : filtered.length === 0 ? (
               <div className="col-span-1 md:col-span-2 flex flex-col items-center justify-center py-12 text-[var(--color-text-muted)]">
@@ -194,34 +194,36 @@ export default function KnowledgePage() {
                       <h3 className="text-[14px] font-semibold text-[var(--color-text)] leading-tight mb-1">{snippet.title}</h3>
                       <p className="text-[13px] text-[var(--color-text-2)] line-clamp-2 leading-relaxed">{snippet.description || 'No description'}</p>
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-within:opacity-100 transition-opacity">
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-6 w-6 -mt-1"
+                        className="h-8 w-8 -mt-1"
+                        aria-label={`Edit ${snippet.title}`}
                         onClick={(e: React.MouseEvent) => {
                           e.stopPropagation();
                           handleOpenForm(snippet);
                         }}
                       >
-                        <Edit2 size={13} />
+                        <Edit2 aria-hidden="true" size={13} />
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-6 w-6 -mt-1 mr-1"
+                        className="h-8 w-8 -mt-1 mr-1"
+                        aria-label={`Copy ${snippet.title}`}
                         onClick={(e: React.MouseEvent) => {
                           e.stopPropagation();
                           navigator.clipboard.writeText(snippet.content);
                         }}
                       >
-                        <Copy size={13} />
+                        <Copy aria-hidden="true" size={13} />
                       </Button>
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-auto pt-2 border-t border-[var(--color-border-subtle)]">
-                    <Badge variant="secondary" className="h-5 text-[10px] font-mono">{snippet.language}</Badge>
-                    <span className="text-[11px] text-[var(--color-text-muted)]">
+                    <Badge variant="secondary" className="h-5 text-[12px] font-mono">{snippet.language}</Badge>
+                    <span className="text-[12px] text-[var(--color-text-muted)]">
                       {new Date(snippet.createdAt).toLocaleDateString()}
                     </span>
                   </div>
@@ -234,17 +236,12 @@ export default function KnowledgePage() {
       </div>
 
       {/* Slide-over Form */}
-      {isFormOpen && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/50 z-[40]" 
-            onClick={handleCloseForm}
-          />
-          <div className="fixed top-0 right-0 h-full w-[450px] bg-[var(--color-bg)] border-l border-[var(--color-border)] shadow-2xl z-[50] flex flex-col animate-in slide-in-from-right duration-200">
+      <Sheet open={isFormOpen} onOpenChange={(open) => { if (!open) handleCloseForm() }}>
+        <SheetContent>
             <div className="h-[60px] border-b border-[var(--color-border)] flex items-center justify-between px-6 shrink-0">
-              <h2 className="text-[15px] font-semibold text-[var(--color-text)]">
+              <SheetTitle className="text-[15px] font-semibold text-[var(--color-text)]">
                 {editingSnippet ? 'Edit Snippet' : 'New Snippet'}
-              </h2>
+              </SheetTitle>
               <div className="flex items-center gap-2">
                 {editingSnippet && (
                   <Button 
@@ -256,21 +253,22 @@ export default function KnowledgePage() {
                         deleteMutation.mutate(editingSnippet.id)
                       }
                     }}
+                    aria-label="Delete snippet"
                     disabled={deleteMutation.isPending}
                   >
-                    <Trash2 size={16} />
+                    <Trash2 aria-hidden="true" size={16} />
                   </Button>
                 )}
-                <Button variant="ghost" size="icon" onClick={handleCloseForm} className="text-[var(--color-text-2)] hover:text-[var(--color-text)]">
-                  <X size={18} />
+                <Button variant="ghost" size="icon" aria-label="Close form" onClick={handleCloseForm} className="text-[var(--color-text-2)] hover:text-[var(--color-text)]">
+                  <X aria-hidden="true" size={18} />
                 </Button>
               </div>
             </div>
             
             <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
               <div className="flex flex-col gap-2">
-                <label className="text-[12px] font-medium text-[var(--color-text-2)]">Title <span className="text-[var(--color-danger)]">*</span></label>
-                <Input 
+                <label htmlFor="snippet-field-1" className="text-[12px] font-medium text-[var(--color-text-2)]">Title <span className="text-[var(--color-danger)]">*</span></label>
+                <Input id="snippet-field-1" 
                   placeholder="e.g. Fetch API Wrapper" 
                   value={title}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
@@ -280,8 +278,8 @@ export default function KnowledgePage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-[12px] font-medium text-[var(--color-text-2)]">Description</label>
-                <Input 
+                <label htmlFor="snippet-field-2" className="text-[12px] font-medium text-[var(--color-text-2)]">Description</label>
+                <Input id="snippet-field-2" 
                   placeholder="Brief explanation of what this does" 
                   value={description}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
@@ -290,8 +288,8 @@ export default function KnowledgePage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-[12px] font-medium text-[var(--color-text-2)]">Language <span className="text-[var(--color-danger)]">*</span></label>
-                <Input 
+                <label htmlFor="snippet-field-3" className="text-[12px] font-medium text-[var(--color-text-2)]">Language <span className="text-[var(--color-danger)]">*</span></label>
+                <Input id="snippet-field-3" 
                   placeholder="e.g. typescript, python, bash" 
                   value={language}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguage(e.target.value)}
@@ -300,10 +298,10 @@ export default function KnowledgePage() {
               </div>
 
               <div className="flex flex-col gap-2 flex-1">
-                <label className="text-[12px] font-medium text-[var(--color-text-2)] flex items-center justify-between">
+                <label htmlFor="snippet-field-4" className="text-[12px] font-medium text-[var(--color-text-2)] flex items-center justify-between">
                   <span>Code Content <span className="text-[var(--color-danger)]">*</span></span>
                 </label>
-                <Textarea 
+                <Textarea id="snippet-field-4" 
                   placeholder="Paste your code here..." 
                   value={content}
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
@@ -318,13 +316,11 @@ export default function KnowledgePage() {
                 onClick={() => saveMutation.mutate({ title, description, content, language })}
                 disabled={!title || !content || !language || saveMutation.isPending}
               >
-                {saveMutation.isPending ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
-                {editingSnippet ? 'Save Changes' : 'Create Snippet'}
+                {saveMutation.isPending ? 'Saving…' : editingSnippet ? 'Save Changes' : 'Create Snippet'}
               </Button>
             </div>
-          </div>
-        </>
-      )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

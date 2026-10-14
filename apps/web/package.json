@@ -6,9 +6,11 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
+    "test:e2e": "playwright test",
+    "create-owner": "bun scripts/create-owner.ts",
     "clean": "rm -rf .next"
   },
   "dependencies": {
@@ -39,7 +41,7 @@
     "date-fns": "^4.4.0",
     "lucide-react": "^1.33.0",
     "motion": "^13.1.1",
-    "next": "16.3.2",
+    "next": "16.3.8",
     "next-themes": "^0.4.6",
     "nuqs": "^2.10.0",
     "pg": "^8.23.0",
@@ -56,6 +58,8 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
@@ -63,8 +67,9 @@
     "@types/node": "^26",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^10",
-    "eslint-config-next": "16.3.2",
+    "axe-core": "^4.14.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "16.3.8",
     "jsdom": "^30.1.0",
     "tailwindcss": "^4",
     "typescript": "^6.0.0",

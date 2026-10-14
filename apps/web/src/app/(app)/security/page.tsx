@@ -15,7 +15,6 @@ import {
   Trash2,
   Copy,
   ClipboardList,
-  Loader2,
   AlertCircle,
   Server,
 } from 'lucide-react'
@@ -41,19 +40,19 @@ type AuditLog = {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  'api-key': 'text-violet-400 bg-violet-400/10 border-violet-400/20',
-  'oauth': 'text-blue-400 bg-blue-400/10 border-blue-400/20',
-  'database': 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
-  'ssh': 'text-orange-400 bg-orange-400/10 border-orange-400/20',
+  'api-key': 'text-[var(--color-accent)] bg-[var(--color-accent-muted)] border-[var(--color-accent)]/30',
+  'oauth': 'text-[var(--color-info)] bg-[var(--color-info-muted)] border-[var(--color-info)]/30',
+  'database': 'text-[var(--color-success)] bg-[var(--color-success-muted)] border-[var(--color-success)]/30',
+  'ssh': 'text-[var(--color-warning)] bg-[var(--color-warning-muted)] border-[var(--color-warning)]/30',
 }
 
 const ACTION_COLORS: Record<string, string> = {
-  CREATE: 'text-emerald-400',
-  UPDATE: 'text-yellow-400',
-  DELETE: 'text-red-400',
-  REVEAL_SECRET: 'text-violet-400',
-  LOGIN: 'text-blue-400',
-  LOGOUT: 'text-gray-400',
+  CREATE: 'text-[var(--color-success)]',
+  UPDATE: 'text-[var(--color-warning)]',
+  DELETE: 'text-[var(--color-danger)]',
+  REVEAL_SECRET: 'text-[var(--color-accent)]',
+  LOGIN: 'text-[var(--color-info)]',
+  LOGOUT: 'text-[var(--color-text-2)]',
 }
 
 function AddSecretDialog({ onAdd }: { onAdd: (data: Record<string, string>) => void }) {
@@ -82,10 +81,10 @@ function AddSecretDialog({ onAdd }: { onAdd: (data: Record<string, string>) => v
       <h4 className="text-[13px] font-semibold text-[var(--color-text)]">New Secret</h4>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3">
-          <Input required placeholder="Name (e.g. GitHub PAT)" value={name} onChange={e => setName(e.target.value)} className="bg-[var(--color-surface-2)] h-8 text-[13px]" />
-          <Input required placeholder="Key (e.g. GITHUB_TOKEN)" value={key} onChange={e => setKey(e.target.value)} className="bg-[var(--color-surface-2)] h-8 text-[13px] font-mono" />
+          <Input required placeholder="Name (e.g. GitHub PAT)" value={name} onChange={e => setName(e.target.value)} className="bg-[var(--color-surface-2)] h-8 text-[13px]" aria-label="Name (e.g. GitHub PAT)" />
+          <Input required placeholder="Key (e.g. GITHUB_TOKEN)" value={key} onChange={e => setKey(e.target.value)} className="bg-[var(--color-surface-2)] h-8 text-[13px] font-mono" aria-label="Key (e.g. GITHUB_TOKEN)" />
         </div>
-        <Input required placeholder="Value (will be encrypted)" value={value} onChange={e => setValue(e.target.value)} className="bg-[var(--color-surface-2)] h-8 text-[13px] font-mono" type="password" />
+        <Input required placeholder="Value (will be encrypted)" value={value} onChange={e => setValue(e.target.value)} className="bg-[var(--color-surface-2)] h-8 text-[13px] font-mono" type="password" aria-label="Value (will be encrypted)" />
         <select value={category} onChange={e => setCategory(e.target.value)} className="h-8 px-2 rounded-md text-[13px] bg-[var(--color-surface-2)] border border-[var(--color-border-subtle)] text-[var(--color-text)]">
           <option value="api-key">API Key</option>
           <option value="oauth">OAuth Token</option>
@@ -127,7 +126,7 @@ function SecretRow({ secret, onDelete }: { secret: Secret; onDelete: (id: string
     await navigator.clipboard.writeText(revealedValue)
   }
 
-  const categoryClass = CATEGORY_COLORS[secret.category] || 'text-gray-400 bg-gray-400/10 border-gray-400/20'
+  const categoryClass = CATEGORY_COLORS[secret.category] || 'text-[var(--color-text-2)] bg-[var(--color-surface-3)] border-[var(--color-border)]'
 
   return (
     <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--color-surface-2)]/50 border border-[var(--color-border-subtle)] hover:border-[var(--color-border)] transition-colors group">
@@ -137,23 +136,23 @@ function SecretRow({ secret, onDelete }: { secret: Secret; onDelete: (id: string
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-medium text-[var(--color-text)]">{secret.name}</span>
-          <span className={`text-[10px] px-1.5 py-0.5 rounded border font-mono ${categoryClass}`}>{secret.category}</span>
+          <span className={`text-[12px] px-1.5 py-0.5 rounded border font-mono ${categoryClass}`}>{secret.category}</span>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <code className="text-[11px] text-[var(--color-text-muted)] font-mono">{secret.key}</code>
+          <code className="text-[12px] text-[var(--color-text-muted)] font-mono">{secret.key}</code>
           <span className="text-[var(--color-border-strong)]">·</span>
-          <code className="text-[11px] text-[var(--color-text-muted)] font-mono tracking-widest">
+          <code className="text-[12px] text-[var(--color-text-muted)] font-mono tracking-widest">
             {revealed && revealedValue ? revealedValue : '••••••••••••'}
           </code>
         </div>
       </div>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        {revealed && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopy}><Copy size={13} /></Button>}
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleReveal} disabled={revealing}>
-          {revealing ? <Loader2 size={13} className="animate-spin" /> : revealed ? <EyeOff size={13} /> : <Eye size={13} />}
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+        {revealed && <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Copy value of ${secret.name}`} onClick={handleCopy}><Copy aria-hidden="true" size={13} /></Button>}
+        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={revealed ? `Hide value of ${secret.name}` : `Reveal value of ${secret.name}`} aria-busy={revealing} onClick={handleReveal} disabled={revealing}>
+          {revealed ? <EyeOff aria-hidden="true" size={13} /> : <Eye aria-hidden="true" size={13} />}
         </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-[var(--color-destructive)] hover:bg-[var(--color-destructive)]/10" onClick={() => onDelete(secret.id)}>
-          <Trash2 size={13} />
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-[var(--color-danger)] hover:bg-[var(--color-danger-muted)]" aria-label={`Delete ${secret.name}`} onClick={() => onDelete(secret.id)}>
+          <Trash2 aria-hidden="true" size={13} />
         </Button>
       </div>
     </div>
@@ -224,7 +223,7 @@ export default function SecurityPage() {
           <div className="flex-1 overflow-y-auto space-y-2 pr-1">
             {secretsLoading ? (
               <div className="flex items-center justify-center h-40 gap-2 text-[var(--color-text-2)] text-[13px]">
-                <Loader2 size={16} className="animate-spin" /> Loading vault...
+                <span role="status">Loading vault...</span>
               </div>
             ) : secrets.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 gap-3 text-[var(--color-text-muted)]">
@@ -245,7 +244,7 @@ export default function SecurityPage() {
         <div className="flex-1 overflow-y-auto space-y-2 pr-1">
           {auditLoading ? (
             <div className="flex items-center justify-center h-40 gap-2 text-[var(--color-text-2)] text-[13px]">
-              <Loader2 size={16} className="animate-spin" /> Loading audit log...
+              <span role="status">Loading audit log...</span>
             </div>
           ) : auditLogs.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 gap-3 text-[var(--color-text-muted)]">
@@ -255,21 +254,21 @@ export default function SecurityPage() {
           ) : (
             auditLogs.map((log: any) => (
               <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg bg-[var(--color-surface-2)]/50 border border-[var(--color-border-subtle)]">
-                <div className={`text-[11px] font-mono font-bold px-2 py-1 rounded shrink-0 mt-0.5 ${ACTION_COLORS[log.action] ?? 'text-gray-400'} bg-current/10`}>
+                <div className={`text-[12px] font-mono font-bold px-2 py-1 rounded shrink-0 mt-0.5 ${ACTION_COLORS[log.action] ?? 'text-[var(--color-text-2)]'} bg-current/10`}>
                   {log.action}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] text-[var(--color-text)]">
                     <span className="font-mono text-[var(--color-text-2)]">{log.resource}</span>
-                    {log.resourceId && <span className="text-[var(--color-text-muted)] text-[11px] ml-2 font-mono">#{log.resourceId.slice(0, 8)}</span>}
+                    {log.resourceId && <span className="text-[var(--color-text-muted)] text-[12px] ml-2 font-mono">#{log.resourceId.slice(0, 8)}</span>}
                   </p>
                   {log.metadata && Object.keys(log.metadata).length > 0 && (
-                    <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5 font-mono">
+                    <p className="text-[12px] text-[var(--color-text-muted)] mt-0.5 font-mono">
                       {JSON.stringify(log.metadata)}
                     </p>
                   )}
                 </div>
-                <span className="text-[11px] text-[var(--color-text-muted)] whitespace-nowrap shrink-0">
+                <span className="text-[12px] text-[var(--color-text-muted)] whitespace-nowrap shrink-0">
                   {new Date(log.createdAt).toLocaleString()}
                 </span>
               </div>

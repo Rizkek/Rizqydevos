@@ -6,6 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     root: './',
+    include: ['src/**/*.spec.ts'],
   },
   plugins: [
     swc.vite({

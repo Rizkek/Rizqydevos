@@ -1,9 +1,5 @@
-<!-- BEGIN:nextjs-agent-rules -->
+# AGENTS.md (apps/web)
 
-# This is NOT the Next.js you know
+Aturan lengkap ada di [../../AGENTS.md](../../AGENTS.md). File itu berlaku untuk seluruh monorepo, termasuk bagian aksesibilitas (7.1), performa dan Core Web Vitals (7.2), dan integrasi GitHub/Vercel (6).
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+Khusus `apps/web`: ini Next.js 16. Baca panduan terkait di `node_modules/next/dist/docs/` sebelum menulis kode Next.js; konvensi dan API-nya bisa berbeda dari pengetahuan umum (contoh: `proxy.ts` menggantikan `middleware.ts`, `next lint` dihapus).

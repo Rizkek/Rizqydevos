@@ -1,7 +1,7 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { APP_GUARD } from '@nestjs/core'
-import { ThrottlerModule } from '@nestjs/throttler'
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
 import { DatabaseModule } from './database/database.module'
 import { CacheModule } from './cache/cache.module'
 import { envValidation } from './config/env.validation'
@@ -23,6 +23,11 @@ import { PinoLoggerService } from './shared/logger/pino-logger.service'
   controllers: [HealthController],
   providers: [
     PinoLoggerService,
+    // Throttle first: AuthGuard makes an HTTP call, so unauthenticated floods must be rejected before it.
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: AuthGuard,

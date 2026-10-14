@@ -7,13 +7,13 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-transparent bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)]",
+        default: "border-transparent bg-[var(--color-accent)] text-[var(--color-on-solid)] hover:bg-[var(--color-accent-hover)]",
         secondary: "border-transparent bg-[var(--color-surface-2)] text-[var(--color-text)] hover:bg-[var(--color-surface-3)]",
-        destructive: "border-transparent bg-[var(--color-danger)] text-white hover:bg-[var(--color-danger)]/80",
+        destructive: "border-transparent bg-[var(--color-danger)] text-[var(--color-on-solid)] hover:bg-[var(--color-danger)]/80",
         outline: "text-[var(--color-text)] border-[var(--color-border-strong)]",
-        success: "border-transparent bg-[var(--color-success)] text-white",
-        warning: "border-transparent bg-[var(--color-warning)] text-white",
-        info: "border-transparent bg-[var(--color-info)] text-white",
+        success: "border-transparent bg-[var(--color-success)] text-[var(--color-on-solid)]",
+        warning: "border-transparent bg-[var(--color-warning)] text-[var(--color-on-solid)]",
+        info: "border-transparent bg-[var(--color-info)] text-[var(--color-on-solid)]",
       },
     },
     defaultVariants: {

@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { WidgetCard } from '../widget-card'
-import { Copy, Code2, Loader2 } from 'lucide-react'
+import { Copy, Code2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { useQuery } from '@tanstack/react-query'
 import { WidgetConfig } from '@/stores/widget.store'
@@ -31,7 +31,7 @@ export function SnippetsWidget({ config }: { config?: WidgetConfig }) {
       <div className="flex flex-col gap-1 overflow-y-auto h-full pr-1">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-2)] gap-2 text-[12px]">
-            <Loader2 size={14} className="animate-spin" /> Fetching...
+            <span role="status">Fetching...</span>
           </div>
         ) : snippets.length > 0 ? (
           snippets.map((snippet) => (
@@ -41,10 +41,10 @@ export function SnippetsWidget({ config }: { config?: WidgetConfig }) {
                 <span className="text-[13px] text-[var(--color-text)] font-medium truncate">{snippet.title}</span>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-2">
-                <Badge variant="secondary" className="h-5 text-[9px] uppercase font-mono tracking-wider">
+                <Badge variant="secondary" className="h-5 text-[12px] uppercase font-mono tracking-wider">
                   {snippet.language}
                 </Badge>
-                <button onClick={() => navigator.clipboard.writeText(snippet.content)} className="opacity-0 group-hover:opacity-100 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-opacity p-1" aria-label={`Copy ${snippet.title}`}>
+                <button onClick={() => navigator.clipboard.writeText(snippet.content)} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-within:opacity-100 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-opacity p-1" aria-label={`Copy ${snippet.title}`}>
                   <Copy size={12} />
                 </button>
               </div>

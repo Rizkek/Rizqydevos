@@ -4,7 +4,7 @@ import * as React from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Save, ArrowLeft, Loader2 } from 'lucide-react'
+import { Save, ArrowLeft } from 'lucide-react'
 import { useRouter, useParams } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -60,7 +60,7 @@ export default function NoteEditorPage() {
   })
 
   if (isLoading) {
-    return <div className="flex-1 flex items-center justify-center"><Loader2 className="animate-spin text-[var(--color-text-muted)]" /></div>
+    return <div className="flex-1 flex items-center justify-center"><span role="status" className="text-[13px] text-[var(--color-text-2)]">Loading…</span></div>
   }
 
   return (
@@ -75,8 +75,7 @@ export default function NoteEditorPage() {
             value={title} 
             onChange={e => setTitle(e.target.value)} 
             className="h-8 border-transparent hover:border-[var(--color-border)] focus:border-[var(--color-accent)] bg-transparent font-medium text-[15px] px-2 shadow-none"
-            placeholder="Note Title..."
-          />
+            placeholder="Note Title..." aria-label="Note Title" />
         </div>
         <div className="flex items-center gap-2">
           <div className="bg-[var(--color-surface-2)] p-1 rounded-md flex items-center gap-1 border border-[var(--color-border-subtle)]">
@@ -99,8 +98,8 @@ export default function NoteEditorPage() {
             disabled={saveMutation.isPending}
             className="h-8 gap-2 px-4 shadow-sm"
           >
-            {saveMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            Save Note
+            <Save aria-hidden="true" size={14} />
+            {saveMutation.isPending ? 'Saving…' : 'Save Note'}
           </Button>
         </div>
       </div>
@@ -113,8 +112,7 @@ export default function NoteEditorPage() {
             onChange={(e) => setContent(e.target.value)}
             className="w-full h-full p-8 resize-none bg-transparent outline-none text-[15px] font-mono leading-relaxed text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
             placeholder="Start writing..."
-            spellCheck={false}
-          />
+            spellCheck={false} aria-label="Start writing" />
         ) : (
           <div className="w-full h-full p-8 overflow-y-auto prose prose-invert max-w-4xl mx-auto prose-pre:bg-[var(--color-surface-2)] prose-pre:border prose-pre:border-[var(--color-border-subtle)]">
             <ReactMarkdown>{content}</ReactMarkdown>

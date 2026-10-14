@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Search, Copy, Check, Sparkles, Folder, Loader2, Pin } from 'lucide-react'
+import { Plus, Search, Copy, Check, Sparkles, Folder, Pin } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchApi } from '@/lib/api'
 import { createQueryOptions, queryKeys } from '@/lib/query'
@@ -138,33 +138,29 @@ export default function AiPage() {
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
                   className="bg-[var(--color-surface)]"
-                  autoFocus
-                />
+                  autoFocus aria-label="Prompt Title (e.g., Code Reviewer Persona)" />
               </div>
               <Input 
                 placeholder="Category (e.g., Coding)" 
                 value={newCategory}
                 onChange={e => setNewCategory(e.target.value)}
-                className="bg-[var(--color-surface)]"
-              />
+                className="bg-[var(--color-surface)]" aria-label="Category (e.g., Coding)" />
             </div>
             <textarea
               placeholder="Write your prompt content here..."
               value={newContent}
               onChange={e => setNewContent(e.target.value)}
-              className="w-full h-32 p-3 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] outline-none focus:border-[var(--color-accent)] text-[13px] resize-none"
-            />
+              className="w-full h-32 p-3 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] outline-none focus:border-[var(--color-accent)] text-[13px] resize-none" aria-label="Write your prompt content here" />
             <div className="flex justify-between items-center">
               <Input 
                 placeholder="Tags (comma separated)" 
                 value={newTags}
                 onChange={e => setNewTags(e.target.value)}
-                className="w-1/2 bg-[var(--color-surface)]"
-              />
+                className="w-1/2 bg-[var(--color-surface)]" aria-label="Tags (comma separated)" />
               <div className="flex gap-2">
                 <Button type="button" variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
                 <Button type="submit" disabled={createMutation.isPending || !newTitle.trim() || !newContent.trim()}>
-                  {createMutation.isPending && <Loader2 size={14} className="mr-2 animate-spin" />} Save Prompt
+                  {createMutation.isPending ? 'Saving…' : 'Save Prompt'}
                 </Button>
               </div>
             </div>
@@ -205,14 +201,13 @@ export default function AiPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search prompts..." 
-              className="pl-9 bg-[var(--color-surface)] w-full max-w-md"
-            />
+              className="pl-9 bg-[var(--color-surface)] w-full max-w-md" aria-label="Search prompts" />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto pb-8">
             {isLoading ? (
               <div className="col-span-1 md:col-span-2 flex items-center justify-center py-12">
-                <Loader2 className="animate-spin text-[var(--color-text-muted)] h-8 w-8" />
+                <span role="status" className="text-[13px] text-[var(--color-text-2)]">Loading…</span>
               </div>
             ) : filtered.length === 0 ? (
               <div className="col-span-1 md:col-span-2 flex flex-col items-center justify-center py-12 text-[var(--color-text-muted)]">
@@ -234,7 +229,8 @@ export default function AiPage() {
                     <Button 
                       variant={copiedId === prompt.id ? 'default' : 'secondary'}
                       size="icon" 
-                      className={`h-7 w-7 transition-all ${copiedId === prompt.id ? 'bg-[var(--color-success)] text-white' : 'opacity-0 group-hover:opacity-100'} -mt-1 -mr-1`}
+                      className={`h-7 w-7 transition-all ${copiedId === prompt.id ? 'bg-[var(--color-success)] text-[var(--color-on-solid)]' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-within:opacity-100'} -mt-1 -mr-1`}
+                      aria-label={copiedId === prompt.id ? `Copied ${prompt.title}` : `Copy ${prompt.title}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleCopy(prompt);
@@ -251,9 +247,9 @@ export default function AiPage() {
                   <div className="flex items-center justify-between mt-auto pt-3 border-t border-[var(--color-border-subtle)]">
                     <div className="flex items-center gap-2">
                       {prompt.category && (
-                        <Badge variant="secondary" className="h-5 text-[10px] uppercase font-bold tracking-wider">{prompt.category}</Badge>
+                        <Badge variant="secondary" className="h-5 text-[12px] uppercase font-bold tracking-wider">{prompt.category}</Badge>
                       )}
-                      <span className="text-[11px] text-[var(--color-text-muted)] flex items-center gap-1 font-medium">
+                      <span className="text-[12px] text-[var(--color-text-muted)] flex items-center gap-1 font-medium">
                         <Sparkles size={12} /> {prompt.usageCount} uses
                       </span>
                     </div>
