@@ -31,17 +31,6 @@ services:
       timeout: 5s
       retries: 5
 
-  meilisearch:
-    image: getmeili/meilisearch:latest
-    environment:
-      MEILI_MASTER_KEY: devos_meili_key_dev
-      MEILI_NO_ANALYTICS: "true"
-    ports:
-      - "7700:7700"
-    volumes:
-      - meili_data:/meili_data
-
 volumes:
   postgres_data:
   redis_data:
-  meili_data:

@@ -28,8 +28,6 @@ services:
       - BETTER_AUTH_URL=${BETTER_AUTH_URL:?BETTER_AUTH_URL must be set}
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:?ENCRYPTION_KEY must be set}
-      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
-      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
     depends_on:
       postgres:
         condition: service_healthy
@@ -66,17 +64,6 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ── Search ─────────────────────────────────────────────────────────────────
-  meilisearch:
-    image: getmeili/meilisearch:latest
-    environment:
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?MEILI_MASTER_KEY must be set}
-      MEILI_NO_ANALYTICS: "true"
-    volumes:
-      - meili_data:/meili_data
-    restart: unless-stopped
-
 volumes:
   postgres_data:
   redis_data:
-  meili_data:

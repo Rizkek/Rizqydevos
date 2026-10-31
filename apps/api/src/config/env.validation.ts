@@ -35,20 +35,6 @@ const envSchema = z.object({
   // Auth
   BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: z.string().url(),
-  GITHUB_CLIENT_ID: z.string().optional(),
-  GITHUB_CLIENT_SECRET: z.string().optional(),
-  GOOGLE_CLIENT_ID: z.string().optional(),
-  GOOGLE_CLIENT_SECRET: z.string().optional(),
-
-  // Storage (Cloudflare R2)
-  R2_ACCOUNT_ID: z.string().optional(),
-  R2_ACCESS_KEY_ID: z.string().optional(),
-  R2_SECRET_ACCESS_KEY: z.string().optional(),
-  R2_BUCKET_NAME: z.string().optional(),
-
-  // AI Providers
-  OPENAI_API_KEY: z.string().optional(),
-  ANTHROPIC_API_KEY: z.string().optional(),
 
   // Encryption (for secrets manager)
   ENCRYPTION_KEY: z.string().refine(
@@ -71,7 +57,9 @@ const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>
 
 export function envValidation(config: Record<string, unknown>): Env {
-  const result = envSchema.safeParse(config)
+  // dotenv turns `KEY=` into an empty string; treat it as unset so optional values and defaults apply.
+  const provided = Object.fromEntries(Object.entries(config).filter(([, value]) => value !== ''))
+  const result = envSchema.safeParse(provided)
 
   if (!result.success) {
     const missing = result.error.issues
