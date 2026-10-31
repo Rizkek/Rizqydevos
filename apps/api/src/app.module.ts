@@ -11,9 +11,9 @@ import { ProjectsModule } from './modules/projects/projects.module'
 import { SettingsModule } from './modules/settings/settings.module'
 import { IntegrationsModule } from './modules/integrations/integrations.module'
 import { SecretsModule } from './modules/secrets/secrets.module'
-import { MonitoringModule } from './modules/monitoring/monitoring.module'
+import { InfrastructureModule } from './modules/infrastructure/infrastructure.module'
+import { AuditModule } from './modules/audit/audit.module'
 import { AiModule } from './modules/ai/ai.module'
-import { DeveloperModule } from './modules/developer/developer.module'
 import { HealthController } from './health.controller'
 import { AuthGuard } from './shared/guards/auth.guard'
 import { CorrelationIdMiddleware } from './shared/middleware/correlation-id.middleware'
@@ -62,9 +62,9 @@ import { PinoLoggerService } from './shared/logger/pino-logger.service'
     SettingsModule,
     IntegrationsModule,
     SecretsModule,
-    MonitoringModule,
+    InfrastructureModule,
+    AuditModule,
     AiModule,
-    DeveloperModule,
   ],
 })
 export class AppModule implements NestModule {

@@ -1,7 +1,7 @@
 import { APIError } from 'better-auth/api'
 
 // DevOS is single-user: public registration is a documented non-goal (docs/vision/05-non-goals.md).
-// Any signed-in user can reach the Docker and secrets modules, so an open sign-up would hand them to strangers.
+// Any signed-in user can reach the secrets vault and stored integration tokens, so an open sign-up would hand them to strangers.
 // Only the address in OWNER_EMAIL may create an account; when it is unset, nobody can.
 export function isOwnerEmail(email: string, ownerEmail: string | undefined): boolean {
   const owner = ownerEmail?.trim().toLowerCase()

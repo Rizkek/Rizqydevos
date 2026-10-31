@@ -4,7 +4,6 @@ import * as React from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Shield,
@@ -15,10 +14,9 @@ import {
   Trash2,
   Copy,
   ClipboardList,
-  AlertCircle,
-  Server,
 } from 'lucide-react'
 import { fetchApi } from '@/lib/api'
+import { LoadingState } from '@/components/shared/loading-state'
 import { createQueryOptions, queryKeys } from '@/lib/query'
 
 type Tab = 'secrets' | 'audit'
@@ -168,11 +166,11 @@ export default function SecurityPage() {
   )
 
   const { data: auditLogs = [], isLoading: auditLoading } = useQuery<AuditLog[]>(
-    createQueryOptions(queryKeys.auditLogs, async () => fetchApi('/monitoring/audit'))
+    createQueryOptions(queryKeys.auditLogs, async () => fetchApi('/audit-log'))
   )
 
   const addMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: Record<string, string>) => {
       return fetchApi('/secrets', {
         method: 'POST',
         body: JSON.stringify(data),
@@ -222,16 +220,14 @@ export default function SecurityPage() {
           <AddSecretDialog onAdd={(data) => addMutation.mutate(data)} />
           <div className="flex-1 overflow-y-auto space-y-2 pr-1">
             {secretsLoading ? (
-              <div className="flex items-center justify-center h-40 gap-2 text-[var(--color-text-2)] text-[13px]">
-                <span role="status">Loading vault...</span>
-              </div>
+              <LoadingState text="Loading vault…" className="h-40 p-0" />
             ) : secrets.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 gap-3 text-[var(--color-text-muted)]">
                 <Key size={24} className="opacity-30" />
                 <p className="text-[13px]">No secrets yet. Add your first API key above.</p>
               </div>
             ) : (
-              secrets.map((s: any) => (
+              secrets.map((s) => (
                 <SecretRow key={s.id} secret={s} onDelete={(id) => deleteMutation.mutate(id)} />
               ))
             )}
@@ -243,16 +239,14 @@ export default function SecurityPage() {
       {tab === 'audit' && (
         <div className="flex-1 overflow-y-auto space-y-2 pr-1">
           {auditLoading ? (
-            <div className="flex items-center justify-center h-40 gap-2 text-[var(--color-text-2)] text-[13px]">
-              <span role="status">Loading audit log...</span>
-            </div>
+            <LoadingState text="Loading audit log…" className="h-40 p-0" />
           ) : auditLogs.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 gap-3 text-[var(--color-text-muted)]">
               <ClipboardList size={24} className="opacity-30" />
               <p className="text-[13px]">No audit events yet. Actions you take will appear here.</p>
             </div>
           ) : (
-            auditLogs.map((log: any) => (
+            auditLogs.map((log) => (
               <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg bg-[var(--color-surface-2)]/50 border border-[var(--color-border-subtle)]">
                 <div className={`text-[12px] font-mono font-bold px-2 py-1 rounded shrink-0 mt-0.5 ${ACTION_COLORS[log.action] ?? 'text-[var(--color-text-2)]'} bg-current/10`}>
                   {log.action}

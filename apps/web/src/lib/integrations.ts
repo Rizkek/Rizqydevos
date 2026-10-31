@@ -25,6 +25,30 @@ export interface GithubEvent {
   createdAt: string | null
 }
 
+export interface GithubPullRequest {
+  id: number
+  title: string
+  url: string
+  state: string
+  repo: { fullName: string; url: string }
+  createdAt: string
+  updatedAt: string
+  author: { login?: string; avatarUrl?: string }
+}
+
+export interface GithubRepository {
+  id: number
+  name: string
+  fullName: string
+  description: string | null
+  private: boolean
+  url: string
+  language?: string | null
+  stargazersCount?: number
+  forksCount?: number
+  updatedAt?: string | null
+}
+
 export interface VercelDeployment {
   id: string
   name: string
@@ -109,6 +133,14 @@ export function useIntegrations() {
 
 export function useGithubActivity() {
   return useQuery(integrationQuery<GithubEvent[]>(queryKeys.githubActivity, '/integrations/github/activity'))
+}
+
+export function useGithubPullRequests() {
+  return useQuery(integrationQuery<GithubPullRequest[]>(queryKeys.githubPullRequests, '/integrations/github/prs'))
+}
+
+export function useGithubRepositories() {
+  return useQuery(integrationQuery<GithubRepository[]>(queryKeys.githubRepositories, '/integrations/github/repos'))
 }
 
 export function useVercelDeployments() {

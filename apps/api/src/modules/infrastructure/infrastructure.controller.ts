@@ -2,8 +2,6 @@ import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/
 import { SslService } from './ssl.service'
 import { AuthGuard } from '../../shared/guards/auth.guard'
 import { CurrentUser } from '../../shared/decorators/current-user.decorator'
-import { AuditService } from '../../shared/services/audit.service'
-import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto'
 
 // Max 20 hosts per batch to prevent resource exhaustion
 const MAX_BATCH = 20
@@ -22,13 +20,11 @@ function validateUrl(rawUrl: string): void {
   validateHostname(parsed.hostname)
 }
 
-@Controller('monitoring')
+// Uptime and SSL checks for the owner's own sites (formerly the Monitoring module).
+@Controller('infrastructure')
 @UseGuards(AuthGuard)
-export class MonitoringController {
-  constructor(
-    private readonly sslService: SslService,
-    private readonly auditService: AuditService,
-  ) {}
+export class InfrastructureController {
+  constructor(private readonly sslService: SslService) {}
 
   @Get('ssl')
   async checkSsl(@Query('hostname') hostname: string, @CurrentUser('id') _userId: string) {
@@ -58,13 +54,5 @@ export class MonitoringController {
     const urlList = urls.split(',').map(u => u.trim()).filter(Boolean).slice(0, MAX_BATCH)
     urlList.forEach(validateUrl)
     return Promise.all(urlList.map(u => this.sslService.checkHealth(u)))
-  }
-
-  @Get('audit')
-  async getAuditLog(
-    @CurrentUser('id') userId: string,
-    @Query() pagination: PaginationQueryDto,
-  ) {
-    return this.auditService.findAll(userId, pagination)
   }
 }

@@ -1,169 +1,119 @@
 'use client'
 
-import * as React from 'react'
-import { Card } from '@/components/ui/card'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchApi } from '@/lib/api'
-import { createQueryOptions, queryKeys } from '@/lib/query'
-import { GitPullRequest, Box, Play, Square, RefreshCcw, Trash2 } from 'lucide-react'
+import { Activity, BookMarked, GitPullRequest, Lock } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
-import { IntegrationNotice } from '@/components/shared/integration-notice'
-import { ListSkeleton } from '@/components/shared/list-skeleton'
-import { useGithubActivity } from '@/lib/integrations'
+import { GithubPanel } from '@/components/developer/github-panel'
+import { useGithubActivity, useGithubPullRequests, useGithubRepositories } from '@/lib/integrations'
 import { formatTimestamp } from '@/lib/format'
 
+const ROW = 'block text-[13px] p-3 rounded-lg hover:bg-[var(--color-surface-2)] focus-visible:bg-[var(--color-surface-2)] transition-colors border border-transparent hover:border-[var(--color-border-subtle)]'
 
 export default function DeveloperPage() {
   return (
     <div className="flex-1 flex flex-col p-[var(--spacing-page-pad)] overflow-hidden h-full max-w-6xl mx-auto w-full">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text)]">Developer Hub</h1>
-        <p className="text-[14px] text-[var(--color-text-2)] mt-1">Integrations and infrastructure tools</p>
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text)]">Developer</h1>
+        <p className="text-[14px] text-[var(--color-text-2)] mt-1">GitHub activity, open pull requests, and repositories</p>
       </div>
 
-      <Tabs defaultValue="github" className="flex-1 flex flex-col min-h-0">
+      <Tabs defaultValue="activity" className="flex-1 flex flex-col min-h-0">
         <TabsList className="mb-4">
-          <TabsTrigger value="github" className="gap-2"><GitPullRequest size={14} /> GitHub</TabsTrigger>
-          <TabsTrigger value="docker" className="gap-2"><Box size={14} /> Docker</TabsTrigger>
+          <TabsTrigger value="activity" className="gap-2"><Activity size={14} aria-hidden="true" /> Activity</TabsTrigger>
+          <TabsTrigger value="pull-requests" className="gap-2"><GitPullRequest size={14} aria-hidden="true" /> Pull requests</TabsTrigger>
+          <TabsTrigger value="repositories" className="gap-2"><BookMarked size={14} aria-hidden="true" /> Repositories</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="github" className="flex-1 overflow-hidden">
-          <GithubTab />
+
+        <TabsContent value="activity" className="flex-1 overflow-hidden">
+          <ActivityTab />
         </TabsContent>
-        <TabsContent value="docker" className="flex-1 overflow-hidden">
-          <DockerTab />
+        <TabsContent value="pull-requests" className="flex-1 overflow-hidden">
+          <PullRequestsTab />
+        </TabsContent>
+        <TabsContent value="repositories" className="flex-1 overflow-hidden">
+          <RepositoriesTab />
         </TabsContent>
       </Tabs>
     </div>
   )
 }
 
-function GithubTab() {
-  const { data: events, isLoading, error, refetch } = useGithubActivity()
-
+function ActivityTab() {
   return (
-    <Card className="flex flex-col h-full bg-[var(--color-surface)] border-[var(--color-border-subtle)] overflow-hidden">
-      <div className="p-4 border-b border-[var(--color-border-subtle)] flex items-center justify-between shrink-0">
-        <h3 className="font-medium text-[var(--color-text)] flex items-center gap-2">
-          Activity Feed
-        </h3>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        {isLoading ? (
-          <ListSkeleton label="Loading GitHub activity" rows={5} />
-        ) : error ? (
-          <IntegrationNotice error={error} provider="github" onRetry={() => void refetch()} className="h-full" />
-        ) : !events || events.length === 0 ? (
-          <p className="text-center text-[13px] text-[var(--color-text-2)]">No recent activity found.</p>
-        ) : (
-          <ul className="space-y-4">
-            {events.map((event) => (
-              <li key={event.id} className="flex gap-3 text-[13px] p-3 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors border border-transparent hover:border-[var(--color-border-subtle)]">
-                <img src={event.actor.avatarUrl} alt="" width={32} height={32} loading="lazy" className="w-8 h-8 rounded-full border border-[var(--color-border)]" />
-                <div>
-                  <p className="text-[var(--color-text)]">
-                    <span className="font-semibold">{event.actor.login}</span> {formatEventType(event.type ?? '')} <span className="font-medium">{event.repo.name}</span>
-                  </p>
-                  {event.createdAt && (
-                    <time dateTime={event.createdAt} className="block text-[var(--color-text-2)] mt-1">
-                      {formatTimestamp(event.createdAt)}
-                    </time>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </Card>
+    <GithubPanel title="Activity feed" query={useGithubActivity()} loadingLabel="Loading GitHub activity" emptyText="No recent activity found.">
+      {(events) => (
+        <ul className="space-y-4">
+          {events.map((event) => (
+            <li key={event.id} className="flex gap-3 text-[13px] p-3 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors border border-transparent hover:border-[var(--color-border-subtle)]">
+              <img src={event.actor.avatarUrl} alt="" width={32} height={32} loading="lazy" className="w-8 h-8 rounded-full border border-[var(--color-border)]" />
+              <div>
+                <p className="text-[var(--color-text)]">
+                  <span className="font-semibold">{event.actor.login}</span> {formatEventType(event.type ?? '')} <span className="font-medium">{event.repo.name}</span>
+                </p>
+                {event.createdAt && (
+                  <time dateTime={event.createdAt} className="block text-[var(--color-text-2)] mt-1">
+                    {formatTimestamp(event.createdAt)}
+                  </time>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </GithubPanel>
   )
 }
 
-function DockerTab() {
-  const queryClient = useQueryClient()
-  const { data: containers, isLoading, error } = useQuery(
-    createQueryOptions(queryKeys.dockerContainers, () => fetchApi<any[]>('/developer/docker/containers'))
-  )
-
-  const actionMutation = useMutation({
-    mutationFn: ({ id, action }: { id: string, action: string }) => 
-      fetchApi(`/developer/docker/containers/${id}/action`, {
-        method: 'POST',
-        body: JSON.stringify({ action }),
-      }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.dockerContainers })
-    }
-  })
-
+function PullRequestsTab() {
   return (
-    <Card className="flex flex-col h-full bg-[var(--color-surface)] border-[var(--color-border-subtle)] overflow-hidden">
-      <div className="p-4 border-b border-[var(--color-border-subtle)] flex items-center justify-between shrink-0">
-        <h3 className="font-medium text-[var(--color-text)] flex items-center gap-2">
-          Local Containers
-        </h3>
-        <Button variant="ghost" size="sm" onClick={() => void queryClient.invalidateQueries({ queryKey: queryKeys.dockerContainers })}>
-          <RefreshCcw size={14} className="mr-2" /> Refresh
-        </Button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full text-[var(--color-text-2)] gap-2">
-            <span role="status">Fetching containers...</span>
-          </div>
-        ) : error ? (
-          <div className="flex items-center justify-center h-full text-[var(--color-text-muted)] text-[13px]">
-            Failed to connect to local Docker daemon. Is Docker running?
-          </div>
-        ) : containers?.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-[var(--color-text-muted)] text-[13px]">
-            No containers found.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3">
-            {containers?.map((c: any) => (
-              <div key={c.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border)] gap-4">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-[14px] text-[var(--color-text)]">{c.name}</span>
-                    <span className={`px-2 py-0.5 rounded text-[12px] font-mono border uppercase tracking-wider ${
-                      c.state === 'running' 
-                        ? 'bg-[var(--color-success-muted)] text-[var(--color-success)] border-[var(--color-success)]/30' 
-                        : 'bg-[var(--color-surface-3)] text-[var(--color-text-muted)] border-[var(--color-border)]'
-                    }`}>
-                      {c.state}
+    <GithubPanel title="Open pull requests involving you" query={useGithubPullRequests()} loadingLabel="Loading pull requests" emptyText="No open pull requests.">
+      {(pullRequests) => (
+        <ul className="space-y-2">
+          {pullRequests.map((pr) => (
+            <li key={pr.id}>
+              <a href={pr.url} target="_blank" rel="noopener noreferrer" className={ROW}>
+                <span className="block font-medium text-[var(--color-text)]">{pr.title}</span>
+                <span className="block text-[var(--color-text-2)] mt-1">
+                  {pr.repo.fullName}
+                  {pr.author.login && <> · by {pr.author.login}</>}
+                  {' · updated '}
+                  <time dateTime={pr.updatedAt}>{formatTimestamp(pr.updatedAt)}</time>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </GithubPanel>
+  )
+}
+
+function RepositoriesTab() {
+  return (
+    <GithubPanel title="Recently pushed repositories" query={useGithubRepositories()} loadingLabel="Loading repositories" emptyText="No repositories found.">
+      {(repositories) => (
+        <ul className="space-y-2">
+          {repositories.map((repo) => (
+            <li key={repo.id}>
+              <a href={repo.url} target="_blank" rel="noopener noreferrer" className={ROW}>
+                <span className="flex items-center gap-2 font-medium text-[var(--color-text)]">
+                  {repo.fullName}
+                  {repo.private && (
+                    <span className="inline-flex items-center gap-1 text-[12px] font-normal text-[var(--color-text-2)]">
+                      <Lock size={12} aria-hidden="true" /> Private
                     </span>
-                  </div>
-                  <span className="text-[12px] text-[var(--color-text-2)] font-mono">{c.image}</span>
-                  <span className="text-[12px] text-[var(--color-text-muted)]">{c.status}</span>
-                </div>
-                
-                <div className="flex items-center gap-2 shrink-0">
-                  {c.state === 'running' ? (
-                    <>
-                      <Button variant="outline" size="sm" onClick={() => actionMutation.mutate({ id: c.id, action: 'restart' })}>
-                        <RefreshCcw size={14} />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => actionMutation.mutate({ id: c.id, action: 'stop' })}>
-                        <Square size={14} />
-                      </Button>
-                    </>
-                  ) : (
-                    <Button variant="outline" size="sm" onClick={() => actionMutation.mutate({ id: c.id, action: 'start' })}>
-                      <Play size={14} />
-                    </Button>
                   )}
-                  <Button variant="outline" size="sm" className="text-[var(--color-danger)] hover:bg-[var(--color-danger-muted)]" onClick={() => actionMutation.mutate({ id: c.id, action: 'remove' })}>
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </Card>
+                </span>
+                {repo.description && <span className="block text-[var(--color-text-2)] mt-1">{repo.description}</span>}
+                <span className="block text-[12px] text-[var(--color-text-2)] mt-1">
+                  {[repo.language, `${repo.stargazersCount ?? 0} stars`].filter(Boolean).join(' · ')}
+                  {repo.updatedAt && <> · updated <time dateTime={repo.updatedAt}>{formatTimestamp(repo.updatedAt)}</time></>}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </GithubPanel>
   )
 }
 

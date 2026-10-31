@@ -178,23 +178,14 @@ export interface UpdateSettingsInput {
 
 // ── Dashboard ─────────────────────────────────────────
 
+// Only widgets with an implementation in widget-grid.tsx. Unknown types in persisted layouts render nothing.
 export type WidgetType =
   | 'tasks'
   | 'github'
   | 'pomodoro'
   | 'server-health'
-  | 'docker'
   | 'quick-notes'
-  | 'reading-list'
-  | 'calendar'
-  | 'weather'
   | 'snippets'
-  | 'bookmarks'
-  | 'career'
-  | 'finance'
-  | 'recent-deploys'
-  | 'learning'
-  | 'ai-assistant'
 
 export type WidgetSize = 'SMALL' | 'MEDIUM' | 'LARGE'
 

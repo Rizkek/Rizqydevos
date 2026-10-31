@@ -10,10 +10,6 @@ import {
   TerminalSquare,
   ServerCrash,
   ShieldCheck,
-  Activity,
-  Bot,
-  BarChart3,
-  Zap,
   Settings,
   type LucideIcon,
 } from 'lucide-react'
@@ -33,10 +29,6 @@ export const mainNavItems: NavItem[] = [
   { name: 'Developer', path: '/developer', icon: TerminalSquare },
   { name: 'Infrastructure', path: '/infrastructure', icon: ServerCrash },
   { name: 'Security', path: '/security', icon: ShieldCheck },
-  { name: 'Monitoring', path: '/monitoring', icon: Activity },
-  { name: 'AI', path: '/ai', icon: Bot },
-  { name: 'Analytics', path: '/analytics', icon: BarChart3 },
-  { name: 'Automation', path: '/automation', icon: Zap },
 ]
 
 export const settingsNavItem: NavItem = { name: 'Settings', path: '/settings', icon: Settings }
