@@ -26,7 +26,7 @@ export class HealthController {
       await this.prisma.$queryRaw`SELECT 1`
       await this.cache.get('health-check')
       return { status: 'ready', database: 'ok', cache: 'ok' }
-    } catch (error) {
+    } catch {
       throw new ServiceUnavailableException('Service is not ready')
     }
   }

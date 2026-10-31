@@ -13,7 +13,7 @@ describe('AuthGuard', () => {
     process.env.BETTER_AUTH_URL = 'http://localhost:3000'
   })
 
-  const mockExecutionContext = (headers: Record<string, string>, isPublic = false): ExecutionContext => {
+  const mockExecutionContext = (headers: Record<string, string>): ExecutionContext => {
     return {
       getHandler: () => vi.fn(),
       getClass: () => vi.fn(),

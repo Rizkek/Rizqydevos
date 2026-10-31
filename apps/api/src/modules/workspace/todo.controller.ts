@@ -9,7 +9,6 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  ParseBoolPipe,
   UseGuards,
 } from '@nestjs/common'
 import { TodoService } from './todo.service'

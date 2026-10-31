@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsBoolean, IsArray, IsDateString } from 'class-validator'
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsArray, IsDateString } from 'class-validator'
 import { Priority } from '@prisma/client'
 
 export class CreateTodoDto {
