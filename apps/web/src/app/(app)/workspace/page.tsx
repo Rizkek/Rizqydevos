@@ -6,10 +6,17 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Plus, CheckCircle2, Circle, Search, Clock, Tag, Save } from 'lucide-react'
+import { Plus, CheckCircle2, Circle, Search, Tag, Save } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchApi } from '@/lib/api'
+import { LoadingState } from '@/components/shared/loading-state'
 import { createQueryOptions, queryKeys } from '@/lib/query'
+
+type Note = {
+  id: string
+  title: string
+  content: string
+}
 
 type Todo = {
   id: string
@@ -39,7 +46,7 @@ export default function WorkspacePage() {
   // Fetch Notes for Scratchpad
   useQuery({
     ...createQueryOptions(queryKeys.scratchpad, async () => {
-      const notes = await fetchApi<any[]>('/workspace/notes')
+      const notes = await fetchApi<Note[]>('/workspace/notes')
       const scratch = notes.find(n => n.title === 'Scratchpad') || notes[0]
       if (scratch) {
         setNoteId(scratch.id)
@@ -59,10 +66,10 @@ export default function WorkspacePage() {
           body: JSON.stringify({ content })
         })
       } else {
-        return fetchApi('/workspace/notes', {
+        return fetchApi<Note>('/workspace/notes', {
           method: 'POST',
           body: JSON.stringify({ title: 'Scratchpad', content })
-        }).then((res: any) => {
+        }).then((res) => {
           setNoteId(res.id)
           return res
         })
@@ -161,9 +168,7 @@ export default function WorkspacePage() {
           
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
             {isLoading ? (
-              <div className="flex justify-center p-8 text-[var(--color-text-muted)]">
-                <span role="status" className="text-[13px] text-[var(--color-text-2)]">Loading…</span>
-              </div>
+              <LoadingState text="Loading tasks…" className="p-8" />
             ) : filteredTodos.length === 0 ? (
               <div className="text-center p-8 text-[13px] text-[var(--color-text-muted)]">
                 No tasks found.

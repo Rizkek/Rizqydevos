@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { useWidgetStore } from '@/stores/widget.store'
+import { useWidgetStore, type WidgetConfig } from '@/stores/widget.store'
 import dynamic from 'next/dynamic'
 import { EmptyState } from '@/components/shared/empty-state'
 import { LayoutDashboard } from 'lucide-react'
@@ -13,7 +13,7 @@ function WidgetSkeleton() {
 }
 
 // Map of widget types to their React components
-const WIDGET_REGISTRY: Record<string, React.ComponentType<{ config: any }>> = {
+const WIDGET_REGISTRY: Record<string, React.ComponentType<{ config: WidgetConfig }>> = {
   'tasks': dynamic(() => import('./widgets/tasks-widget').then((mod) => mod.TasksWidget), { loading: () => <WidgetSkeleton /> }),
   'quick-notes': dynamic(() => import('./widgets/quick-notes-widget').then((mod) => mod.QuickNotesWidget), { loading: () => <WidgetSkeleton /> }),
   'server-health': dynamic(() => import('./widgets/server-health-widget').then((mod) => mod.ServerHealthWidget), { loading: () => <WidgetSkeleton /> }),
@@ -21,6 +21,8 @@ const WIDGET_REGISTRY: Record<string, React.ComponentType<{ config: any }>> = {
   'github': dynamic(() => import('./widgets/github-widget').then((mod) => mod.GithubWidget), { loading: () => <WidgetSkeleton /> }),
   'snippets': dynamic(() => import('./widgets/snippets-widget').then((mod) => mod.SnippetsWidget), { loading: () => <WidgetSkeleton /> }),
 }
+
+const subscribeNoop = () => () => {}
 
 export function WidgetGrid() {
   const widgets = useWidgetStore((state) => state.widgets)
@@ -32,9 +34,9 @@ export function WidgetGrid() {
       .sort((a, b) => a.order - b.order)
   }, [widgets])
 
-  // Hydration safety
-  const [mounted, setMounted] = React.useState(false)
-  React.useEffect(() => setMounted(true), [])
+  // The layout comes from localStorage, so the server and the first client render show skeletons.
+  // useSyncExternalStore reports false during hydration and true afterwards, without an effect.
+  const mounted = React.useSyncExternalStore(subscribeNoop, () => true, () => false)
 
   if (!mounted) {
     return (

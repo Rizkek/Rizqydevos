@@ -8,19 +8,16 @@ import { Button } from '@/components/ui/button'
 export function PomodoroWidget() {
   const [timeLeft, setTimeLeft] = React.useState(25 * 60)
   const [isActive, setIsActive] = React.useState(false)
+  // Derived instead of reset in an effect: the timer stops by itself when it reaches zero.
+  const running = isActive && timeLeft > 0
 
   React.useEffect(() => {
-    let interval: ReturnType<typeof setInterval>
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => setTimeLeft((t) => t - 1), 1000)
-    } else if (timeLeft === 0) {
-      setIsActive(false)
-      // Play sound or notification here
-    }
+    if (!running) return
+    const interval = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000)
     return () => clearInterval(interval)
-  }, [isActive, timeLeft])
+  }, [running])
 
-  const toggle = () => setIsActive(!isActive)
+  const toggle = () => setIsActive(!running)
   const reset = () => {
     setIsActive(false)
     setTimeLeft(25 * 60)
@@ -60,12 +57,12 @@ export function PomodoroWidget() {
         {mins}:{secs}
       </div>
       <div className="text-[12px] font-medium uppercase tracking-widest text-[var(--color-text-muted)] mt-2 mb-6 relative z-10">
-        {isActive ? 'Focusing' : 'Ready'}
+        {running ? 'Focusing' : 'Ready'}
       </div>
 
       <div className="flex items-center gap-3 relative z-10">
-        <Button variant={isActive ? "secondary" : "default"} size="icon" className="w-10 h-10 rounded-full" aria-label={isActive ? 'Pause timer' : 'Start timer'} onClick={toggle}>
-          {isActive ? <Pause size={18} /> : <Play size={18} className="ml-1" />}
+        <Button variant={running ? "secondary" : "default"} size="icon" className="w-10 h-10 rounded-full" aria-label={running ? 'Pause timer' : 'Start timer'} onClick={toggle}>
+          {running ? <Pause size={18} /> : <Play size={18} className="ml-1" />}
         </Button>
         <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full text-[var(--color-text-muted)] hover:text-[var(--color-text)]" aria-label="Reset timer" onClick={reset}>
           <RotateCcw aria-hidden="true" size={14} />

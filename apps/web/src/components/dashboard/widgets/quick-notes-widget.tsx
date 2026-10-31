@@ -5,6 +5,7 @@ import { WidgetCard } from '../widget-card'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { WidgetConfig } from '@/stores/widget.store'
 import { fetchApi } from '@/lib/api'
+import { LoadingState } from '@/components/shared/loading-state'
 import { createQueryOptions, queryKeys } from '@/lib/query'
 
 type Note = {
@@ -13,21 +14,14 @@ type Note = {
   content: string
 }
 
-// Simple debounce hook for local state
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = React.useState<T>(value)
-  React.useEffect(() => {
-    const handler = setTimeout(() => setDebouncedValue(value), delay)
-    return () => clearTimeout(handler)
-  }, [value, delay])
-  return debouncedValue
-}
+const SAVE_DELAY_MS = 1000
 
 export function QuickNotesWidget({ config }: { config?: WidgetConfig }) {
   const queryClient = useQueryClient()
   const [localNote, setLocalNote] = React.useState<string>('')
   const [isTyping, setIsTyping] = React.useState(false)
-  
+  const saveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Fetch the scratchpad note
   const { data: notes = [], isLoading } = useQuery<Note[]>(
     createQueryOptions(queryKeys.notes, async () => fetchApi('/workspace/notes'))
@@ -38,12 +32,12 @@ export function QuickNotesWidget({ config }: { config?: WidgetConfig }) {
     return notes.find((note) => note.title === 'Scratchpad')
   }, [notes])
 
-  // Sync server data to local state when loaded
-  React.useEffect(() => {
-    if (scratchpadNote && !isTyping) {
-      setLocalNote(scratchpadNote.content)
-    }
-  }, [scratchpadNote, isTyping])
+  // While the user is typing their own text wins; otherwise show the saved note.
+  const value = isTyping ? localNote : (scratchpadNote?.content ?? localNote)
+
+  React.useEffect(() => () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+  }, [])
 
   // Mutation to create or update note
   const saveMutation = useMutation({
@@ -68,18 +62,15 @@ export function QuickNotesWidget({ config }: { config?: WidgetConfig }) {
     }
   })
 
-  const debouncedContent = useDebounce(localNote, 1000)
-
-  // Trigger save when debounced content changes
-  React.useEffect(() => {
-    if (isTyping && debouncedContent !== scratchpadNote?.content) {
-      saveMutation.mutate(debouncedContent)
-    }
-  }, [debouncedContent])
-
+  // Save once the user pauses typing for SAVE_DELAY_MS.
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const next = e.target.value
     setIsTyping(true)
-    setLocalNote(e.target.value)
+    setLocalNote(next)
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      if (next !== scratchpadNote?.content) saveMutation.mutate(next)
+    }, SAVE_DELAY_MS)
   }
 
   return (
@@ -90,13 +81,11 @@ export function QuickNotesWidget({ config }: { config?: WidgetConfig }) {
       contentClassName="p-0 relative"
     >
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-2)] gap-2 text-[12px]">
-          <span role="status">Loading...</span>
-        </div>
+        <LoadingState text="Loading notes…" className="h-full p-0" />
       ) : (
         <>
           <textarea
-            value={localNote}
+            value={value}
             onChange={handleChange}
             placeholder="Jot down quick thoughts, markdown supported..."
             className="w-full h-full p-4 bg-transparent resize-none outline-none text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] font-mono leading-relaxed"

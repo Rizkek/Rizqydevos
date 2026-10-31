@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Save, ArrowLeft } from 'lucide-react'
@@ -9,6 +8,7 @@ import { useRouter, useParams } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchApi } from '@/lib/api'
+import { LoadingState } from '@/components/shared/loading-state'
 import { createQueryOptions, queryKeys } from '@/lib/query'
 
 type Note = {
@@ -37,12 +37,14 @@ export default function NoteEditorPage() {
     enabled: !isNew
   })
 
-  React.useEffect(() => {
-    if (note) {
-      setTitle(note.title)
-      setContent(note.content)
-    }
-  }, [note])
+  // Copy a freshly loaded note into the form during render instead of in an effect
+  // (react.dev: "Adjusting some state when a prop changes"); avoids a second render pass.
+  const [syncedNote, setSyncedNote] = React.useState<Note | null | undefined>(undefined)
+  if (note && note !== syncedNote) {
+    setSyncedNote(note)
+    setTitle(note.title)
+    setContent(note.content)
+  }
 
   const saveMutation = useMutation<Note>({
     mutationFn: async () => {
@@ -60,7 +62,7 @@ export default function NoteEditorPage() {
   })
 
   if (isLoading) {
-    return <div className="flex-1 flex items-center justify-center"><span role="status" className="text-[13px] text-[var(--color-text-2)]">Loading…</span></div>
+    return <LoadingState text="Loading note…" className="flex-1" />
   }
 
   return (

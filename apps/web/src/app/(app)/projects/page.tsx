@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { fetchApi } from '@/lib/api'
+import { LoadingState } from '@/components/shared/loading-state'
 import { createQueryOptions, queryKeys } from '@/lib/query'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 
@@ -117,9 +118,7 @@ export default function ProjectsPage() {
       />
       
       {isLoading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <span role="status" className="text-[13px] text-[var(--color-text-2)]">Loading…</span>
-        </div>
+        <LoadingState text="Loading projects…" className="flex-1" />
       ) : projects.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-[var(--color-text-muted)]">
           <p className="text-[13px] mb-4">No projects found.</p>
@@ -233,7 +232,7 @@ export default function ProjectsPage() {
                 <label htmlFor="project-field-2" className="text-[12px] font-medium text-[var(--color-text-2)]">Status</label>
                 <select id="project-field-2" 
                   value={status} 
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as any)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as Project['status'])}
                   className="w-full h-10 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)]"
                 >
                   <option value="ACTIVE">Active</option>

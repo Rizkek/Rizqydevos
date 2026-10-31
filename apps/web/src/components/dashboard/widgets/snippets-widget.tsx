@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { useQuery } from '@tanstack/react-query'
 import { WidgetConfig } from '@/stores/widget.store'
 import { fetchApi } from '@/lib/api'
+import { LoadingState } from '@/components/shared/loading-state'
 import { createQueryOptions, queryKeys } from '@/lib/query'
 
 type Snippet = {
@@ -30,9 +31,7 @@ export function SnippetsWidget({ config }: { config?: WidgetConfig }) {
     >
       <div className="flex flex-col gap-1 overflow-y-auto h-full pr-1">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-2)] gap-2 text-[12px]">
-            <span role="status">Fetching...</span>
-          </div>
+          <LoadingState text="Loading snippets…" className="h-full p-0" />
         ) : snippets.length > 0 ? (
           snippets.map((snippet) => (
             <div key={snippet.id} className="group flex items-center justify-between p-2 rounded-md hover:bg-[var(--color-surface-2)] border border-transparent hover:border-[var(--color-border-subtle)] transition-all cursor-pointer">
