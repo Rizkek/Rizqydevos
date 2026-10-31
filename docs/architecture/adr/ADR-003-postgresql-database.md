@@ -1,3 +1,5 @@
+> **Update 2026-10-30**: PostgreSQL stands, but it is hosted on Supabase (free tier) instead of a self-hosted container, and Meilisearch is not used. See [product/overview.md](../../product/overview.md).
+
 # ADR-003 — Use PostgreSQL as the Primary Database
 
 **Date:** 2026-07-17

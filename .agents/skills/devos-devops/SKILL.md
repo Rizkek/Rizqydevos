@@ -1,37 +1,37 @@
 ---
 name: devos-devops
-description: Activate when dealing with deployment, Docker, CI/CD pipelines, server maintenance, monitoring, or database migrations.
+description: Activate when dealing with deployment, hosting configuration, CI/CD pipelines, environment variables, health checks, or database migrations in production.
 ---
 
-# DevOS DevOps & Infrastructure Guidelines
+# DevOS DevOps
 
-As the DevOS DevOps Agent, you are in charge of safely transporting code from the developer's machine to the production server. You must prioritize high availability, security, and low operational costs.
+You prepare code and configuration for deployment. You never deploy, run migrations, or send data to external services without the owner's approval.
 
-## 1. Containerization & Docker
-- **Monorepo Awareness:** DevOS is a Turborepo. Dockerfiles must use Turborepo's `prune` command to extract only the necessary packages for `apps/web` and `apps/api` before building.
-- **Multi-Stage Builds:** Always use multi-stage Dockerfiles. Use a `builder` stage to compile TypeScript/Next.js, and a `runner` stage (e.g., Alpine or distroless) that only copies the built assets and `node_modules` to keep image sizes under 200MB.
-- **Local Dev:** Rely on `docker-compose.yml` for provisioning Postgres and Redis locally. Ensure volume mounts (`-v`) are used so data persists between restarts.
+## Read first
 
-## 2. Prisma Migration Protocol
-- **Local Development:** Developers use `bunx prisma db push` or `prisma migrate dev` to rapidly prototype schema changes.
-- **Production Deployment:** NEVER use `db push` in production. You MUST use `bunx prisma migrate deploy`. 
-- **Migration Generation:** If you modify `schema.prisma`, you must generate a migration file (`bunx prisma migrate dev --name <description>`) and review the generated SQL before committing.
-- **Rollbacks:** Always ensure there is a rollback plan or backup snapshot before executing migrations that drop columns or tables.
+- [docs/plans/ROADMAP.md](../../../docs/plans/ROADMAP.md), Fase P: the production plan and its open questions
+- [docs/architecture/overview.md](../../../docs/architecture/overview.md): development vs production
+- `apps/api/src/config/env.validation.ts`: the variables the API requires
 
-## 3. CI/CD Pipeline (GitHub Actions)
-Any proposed CI/CD pipeline (`.github/workflows/`) must include:
-1. **Lint & Type Check Job:** Runs `eslint` and `tsc --noEmit`.
-2. **Test Job:** Runs `vitest`.
-3. **Build Job:** Runs `turbo run build`.
-4. **Deploy Job (Optional):** Pushes images to a container registry or triggers a webhook.
-Pipelines should leverage aggressive caching (e.g., `actions/cache` for `.turbo` and `node_modules`) to keep runtimes under 3 minutes.
+## Current state
 
-## 4. Cost-Effective Hosting Architecture
-- **Frontend (Web):** Deploy Next.js to Vercel (Free Tier) or Cloudflare Pages.
-- **Backend (API):** Deploy NestJS to a cheap VPS (e.g., DigitalOcean $4/mo, Hetzner) using Docker, or platforms like Render/Railway if the free tier supports it.
-- **Database:** Use Supabase (Free Tier) or self-hosted Postgres on the same VPS as the API to avoid latency and egress costs.
+- Plan: web on Vercel, API on Render (`render.yaml` covers the API only). Render Free sleeps when idle.
+- The session cookie is set on the web domain. Across `*.vercel.app` and `*.onrender.com` it does not reach the API, so production needs Next.js rewrites for `/api/v1/*` or a custom domain with cross-subdomain cookies.
+- No step runs `bunx prisma migrate deploy` yet. `db push` is never used outside local experiments.
+- `docker-compose.dev.yml` provides local Postgres and Redis. `docker-compose.yml` refers to Dockerfiles that do not exist.
+- No CI yet (`.github/` is absent).
+- Health: `/api/v1/health` (liveness) and `/api/v1/health/readiness` (database and Redis).
 
-## 5. Security & Observability
-- **Secrets:** Never hardcode secrets. Always load them via Environment Variables. Validate them using Zod at app startup (`apps/api/src/config/env.validation.ts`).
-- **Health Checks:** Ensure the backend exposes a `/api/health` endpoint that pings the database and Redis to verify full system health.
-- **Reverse Proxy:** Recommend Nginx or Traefik if deploying manually to a VPS to handle SSL/TLS termination automatically (Let's Encrypt).
+## Rules
+
+- Environment variables: names from `env.validation.ts` and `.env.example`; placeholders only in docs and config. `NEXT_PUBLIC_API_URL` is inlined at build time.
+- `TRUST_PROXY_HOPS` must match the number of proxies in front of the API.
+- A CI pipeline runs `bun install`, `bun run lint`, `bun run type-check`, `bun run test`, and `bun run build`, with caching for `.turbo`.
+- Free tiers only; check current limits in the provider docs and mark unverified numbers.
+
+## Checklist
+
+- [ ] Every required variable listed per service, with placeholders
+- [ ] Migration step and rollback or backup described
+- [ ] Health check path configured
+- [ ] Smoke test list: sign in, one authenticated API call, readiness, connect GitHub and Vercel, reveal one secret

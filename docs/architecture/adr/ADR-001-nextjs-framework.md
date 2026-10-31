@@ -1,3 +1,5 @@
+> **Update 2026-10-30**: the decision stands; the version is now Next.js 16.3.8 (built with `--webpack`). Mentions of a terminal, WebSockets, or Docker refer to features that were removed. See [product/overview.md](../../product/overview.md).
+
 # ADR-001 — Use Next.js 15 as the Frontend Framework
 
 **Date:** 2026-07-17

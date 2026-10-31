@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   experimental: {
     // Enable when needed
   },
-  // Modules merged on 2026-10 (docs/vision/06-scope-update-2026-10.md); old bookmarks keep working.
+  // Modules merged on 2026-10 (docs/product/overview.md); old bookmarks keep working.
   async redirects() {
     return [
       { source: '/ai', destination: '/knowledge?tab=prompts', permanent: false },

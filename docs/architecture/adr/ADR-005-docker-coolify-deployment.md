@@ -1,7 +1,9 @@
+> **Status 2026-11-01: superseded once Fase P lands.** The owner chose web on Vercel and API on Render (2026-10-31); the session cookie approach (proxy through Next or a custom domain) is still open. Meilisearch and BullMQ workers are no longer part of the system. A new ADR replaces this one when Fase P is done.
+
 # ADR-005 — Use Docker + Coolify for Deployment
 
 **Date:** 2026-07-17
-**Status:** Accepted
+**Status:** Under review (to be superseded after Fase P, see banner)
 **Deciders:** Rizky
 
 ---

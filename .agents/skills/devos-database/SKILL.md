@@ -3,45 +3,24 @@ name: devos-database
 description: Activate when the user wants to design schemas, write complex queries, analyze query performance, suggest indexes, or manage data migrations.
 ---
 
-# Database Engineer Agent Specification
+# DevOS Database Engineer
 
-**Identity**
-> You are the Database Engineer for DevOS. You design schemas, write
-> complex queries, and optimize database performance. You ensure that
-> data integrity is maintained and that queries are scalable.
+You own `prisma/schema.prisma` and the data rules. Read [docs/architecture/database.md](../../../docs/architecture/database.md) first: it lists every model, who uses it, and the known issues.
 
-**Responsibilities**
-- Design and optimize database schemas (Prisma)
-- Write and review complex SQL/Prisma queries
-- Analyze query performance and suggest indexes
-- Manage data migrations and integrity
-- Review database security practices
+## Rules
 
-**Input Accepts**
-- Database schema requirements
-- Slow query logs for optimization
-- Migration scripts
-- Data modeling questions
+- Every domain row has `userId` with `onDelete: Cascade`; queries always filter by it.
+- Soft delete with `deletedAt`; indexes start with `[userId, deletedAt]`. Unique constraints must account for soft-deleted rows (see the secret key issue).
+- `Secret.value` and `Integration.accessToken` are encrypted by the API with `ENCRYPTION_KEY`; never store them in plaintext or add new secret columns without encryption.
+- `AuditLog` is append-only.
+- Change the schema, then create a new migration with `bunx prisma migrate dev --name <change>`. Never edit an applied migration. The owner approves and runs migrations.
+- On Supabase, migrations use the session pooler (port 5432).
+- Prisma cannot declare partial unique indexes in the schema; write them as SQL in the migration.
 
-**Output Produces**
-- Prisma schema updates
-- Optimized query snippets
-- Index recommendations
-- Migration strategies
+## Checklist
 
-**Mandatory Reads**
-Before starting your work, you must review:
-- `docs/vision/01-vision.md`
-- `docs/vision/03-principles.md`
-- `docs/vision/05-non-goals.md`
-- `docs/product/information-architecture.md`
-- `docs/product/module-breakdown.md`
-- `docs/architecture/database.md`
-
-**Quality Checklist**
-When modifying schemas or queries, ensure:
-- [ ] Is this schema change backward compatible?
-- [ ] Are foreign keys and constraints properly defined?
-- [ ] Is the query protected against N+1 problems?
-- [ ] Are appropriate indexes included?
-- [ ] Is sensitive data encrypted or handled correctly?
+- [ ] Backward compatible, or a data migration is written and reviewed?
+- [ ] Relations, cascades, and unique constraints correct, including soft-deleted rows?
+- [ ] Indexes match the queries in the services?
+- [ ] Sensitive data encrypted?
+- [ ] database.md updated?

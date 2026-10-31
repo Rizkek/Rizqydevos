@@ -1,13 +1,13 @@
 # AGENTS.md — DevOS (Rizqydevos)
 
 Aturan kerja untuk agent AI di repo ini. Bahasa komunikasi: Indonesia. Kode, nama identifier, dan pesan commit: Inggris.
-Terakhir diverifikasi terhadap kode: 2026-10-14. Item bertanda **[verifikasi]** belum dikonfirmasi lewat eksekusi atau pengukuran dan tidak boleh dilaporkan sebagai fakta.
+Terakhir diverifikasi terhadap kode: 2026-10-30. Item bertanda **[verifikasi]** belum dikonfirmasi lewat eksekusi atau pengukuran dan tidak boleh dilaporkan sebagai fakta.
 
-## 0. Arah proyek (revisi 2026-10-14)
+## 0. Arah proyek (revisi 2026-10-14, status 2026-10-30)
 
-DevOS adalah ruang pribadi satu developer: link, pengetahuan, prompt, password yang takut hilang, daftar proyek, status GitHub dan Vercel, dan daftar periksa keamanan. Satu pengguna, biaya nol, tanpa pendaftaran publik. Modul Docker, Analytics, Automation, AI (dilebur ke Knowledge), dan Monitoring (dilebur ke Infrastructure) dijadwalkan dibuang; Links dan brankas password dikembangkan.
+DevOS adalah ruang pribadi satu developer: link, pengetahuan, prompt, password yang takut hilang, daftar proyek, status GitHub dan Vercel, dan daftar periksa keamanan. Satu pengguna, biaya nol, tanpa pendaftaran publik. Per 2026-10-30 (Fase A): modul Docker, Analytics, dan Automation **sudah dibuang**; AI dilebur ke Knowledge (tab Prompts, `/ai` dialihkan); Monitoring dilebur ke Infrastructure (API `/infrastructure/*`, audit log di `/audit-log`). Links dan brankas password dikembangkan berikutnya.
 
-Sebelum mengerjakan apa pun, baca berurutan: `docs/plans/HANDOFF.md` (keadaan terakhir dan jebakan), `docs/plans/ROADMAP.md` (fase A sampai H), `docs/vision/06-scope-update-2026-10.md` (keputusan lingkup). Bila bagian lain dokumen ini bertentangan dengan arah ini (misalnya menyebut modul yang akan dibuang), arah ini yang berlaku. Jangan memperbaiki, menambah test, atau mengoptimalkan modul yang dijadwalkan dibuang kecuali diminta. Pemilik membuat commit dan push sendiri; rencana commit ada di `docs/plans/COMMITS.md`.
+Sebelum mengerjakan apa pun, baca berurutan: `docs/plans/HANDOFF.md` (keadaan terakhir dan jebakan), `docs/plans/ROADMAP.md` (fase S, A sampai H, dan P), `docs/product/overview.md` (lingkup, modul, alur bisnis). Bila bagian lain dokumen ini bertentangan dengan arah ini (misalnya menyebut modul yang akan dibuang), arah ini yang berlaku. Jangan memperbaiki, menambah test, atau mengoptimalkan modul yang dijadwalkan dibuang kecuali diminta. Pemilik membuat commit dan push sendiri; agen memberikan perintah `git add` dan `git commit` siap pakai di chat (satu baris per perintah, tanpa Co-Authored-By).
 
 ## 1. Konteks proyek
 
@@ -15,7 +15,7 @@ DevOS adalah command center pribadi untuk developer. Monorepo Bun + Turborepo.
 
 | Lapisan | Teknologi (versi dari package.json) |
 |---|---|
-| Web `apps/web` | Next.js 16.3.2 App Router (build dengan `--webpack`), React 19.2.8, Tailwind CSS 4, TanStack Query 5, Zustand 5 (persist), cmdk, sonner, motion, nuqs, Radix (dropdown-menu, tabs, slot), lucide-react |
+| Web `apps/web` | Next.js 16.3.8 App Router (build dengan `--webpack`), React 19.2.8, Tailwind CSS 4, TanStack Query 5, Zustand 5 (persist), cmdk, sonner, motion, nuqs, Radix (dropdown-menu, tabs, slot), lucide-react |
 | Auth | better-auth 1.7 (email + password, tanpa social login), session cookie, dijalankan di Next (`app/api/auth/[...all]`) |
 | API `apps/api` | NestJS 11, class-validator + ValidationPipe (whitelist, forbidNonWhitelisted), helmet, throttler, pino, ioredis, Octokit |
 | Data | PostgreSQL via Prisma 7.9 (`@prisma/adapter-pg`), skema di `prisma/schema.prisma`, migrasi `prisma/migrations` |
@@ -23,7 +23,7 @@ DevOS adalah command center pribadi untuk developer. Monorepo Bun + Turborepo.
 | Test | Vitest (api dan web), Testing Library + jsdom (web) |
 | Deploy | `render.yaml` (API), `docker-compose*.yml`, health check `/api/v1/health` |
 
-Peta modul API: `projects`, `workspace` (todo, notes, bookmarks), `knowledge` (notes, snippets), `ai` (prompts), `developer` (docker), `integrations` (github, vercel), `monitoring` (ssl, health), `secrets`, `settings`. Semua route dilindungi `AuthGuard` global kecuali `@Public()`.
+Peta modul API: `projects`, `workspace` (todo, notes, bookmarks), `knowledge` (notes, snippets), `ai` (prompts, ditampilkan sebagai tab Prompts di Knowledge), `integrations` (github, vercel), `infrastructure` (ssl, health; dulu `monitoring`), `audit` (`GET /audit-log`), `secrets`, `settings`. Semua route dilindungi `AuthGuard` global kecuali `@Public()`. Peta lengkap: `docs/architecture/overview.md`.
 
 Perintah (jalankan dari root):
 
@@ -34,12 +34,12 @@ bun run --cwd apps/web test        # satu workspace
 
 Fakta yang sudah terverifikasi dan sering menjebak:
 
-* `next lint` **dihapus di Next 16** (dokumen di `apps/web/node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md`); script `lint` web sudah diganti ke `eslint`, dan `next build` tidak lagi menjalankan lint. `eslint` web diturunkan ke `^9.39.5` karena `eslint-plugin-react` 7.37.5 hanya mendukung ESLint `^9.7` (ESLint 10 membuatnya crash); `bun audit` identik sebelum dan sesudah. Lint web kini berjalan: baseline awal 62 masalah, per akhir Fase 4 tinggal 33 (18 error, 15 peringatan; rincian awal di `docs/plans/baseline.md`). Jangan menambah masalah baru. Vitest web memakai runtime JSX otomatis (`vite.config.ts`) seperti Next, jadi komponen tidak perlu `import React` agar bisa diuji. `apps/api` tidak punya konfigurasi ESLint sama sekali. Test browser: `bun run build`, lalu `bun run --cwd apps/web test:e2e` (Playwright memakai Chrome sistem, tanpa unduhan browser; halaman di balik login belum tercakup karena butuh database).
+* `next lint` **dihapus di Next 16** (dokumen di `apps/web/node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md`); script `lint` web sudah diganti ke `eslint`, dan `next build` tidak lagi menjalankan lint. `eslint` web diturunkan ke `^9.39.5` karena `eslint-plugin-react` 7.37.5 hanya mendukung ESLint `^9.7` (ESLint 10 membuatnya crash); `bun audit` identik sebelum dan sesudah. Lint web kini berjalan: baseline awal 62 masalah, per akhir Fase 4 tinggal 33, per 2026-10-30 **0 error**, 8 peringatan (rincian awal di `docs/plans/baseline.md`), sehingga `bun run lint` dari root hijau. Jangan menambah masalah baru; error lint kini memblokir. Vitest web memakai runtime JSX otomatis (`vite.config.ts`) seperti Next, jadi komponen tidak perlu `import React` agar bisa diuji. `apps/api` punya `eslint.config.mjs` minimal sejak 2026-10-30 (hanya paket `@typescript-eslint` yang terpasang; `no-explicit-any` sebagai peringatan): 0 error, 23 peringatan. Script `lint` API tidak lagi memakai `--fix`. Test browser: `bun run build`, lalu `bun run --cwd apps/web test:e2e` (Playwright memakai Chrome sistem, tanpa unduhan browser; halaman di balik login belum tercakup karena butuh database).
 * Keamanan dependensi (`bun audit`, 2026-10-14): Next dinaikkan 16.3.2 ke 16.3.8 (versi perbaikan untuk 3 advisory RCE kritis) dan `overrides.proxy-addr ^2.0.8` di root menutup advisory kritis `proxy-addr`. Temuan turun dari 50 (4 kritis) ke 38 (0 kritis); sisanya tinggi/sedang pada dependensi transitif (mis. `fast-uri`, `engine.io`, `browserslist`) belum ditangani. Versi Next di-pin tepat (tanpa `^`) bersama `eslint-config-next`; naikkan keduanya bersamaan.
 * Test API hanya mencari `src/**/*.spec.ts` (`apps/api/vitest.config.ts`); sebelumnya Vitest ikut menjalankan hasil kompilasi di `dist/`.
 * `src/proxy.ts` adalah pengganti `middleware.ts` di Next 16. Jangan buat `middleware.ts`.
 * Sebelum menulis kode Next.js, baca panduan terkait di `apps/web/node_modules/next/dist/docs/`. API Next di repo ini bisa berbeda dari pengetahuan umum.
-* `docs/engineering/standards.md` sebagian usang: menyebut pnpm, Playwright, `@/lib/api/client`, folder `features/`. Kenyataan di repo: Bun, `fetchApi` di `@/lib/api`, tanpa `features/`, tanpa Playwright. Bila bertentangan, ikuti kode yang ada lalu laporkan, jangan "memperbaiki" kode agar cocok dengan dokumen.
+* Dokumentasi di `docs/` ditulis ulang dari kode pada 2026-11-01: `product/overview.md`, `architecture/{overview,frontend,backend,database}.md`, `design/design-system.md`, `engineering/standards.md`. Dokumen 2026-07 (vision, product lama, tujuh dokumen design, agent-spec, audit) dihapus. Bila dokumen bertentangan dengan kode, ikuti kode lalu perbaiki dokumennya, jangan mengubah kode agar cocok dengan dokumen. Skill di `.agents/skills/` sebagian masih memuat stack lama (Next 15, `features/`, React Hook Form); kode yang berlaku.
 * `.agents/skills/devos-*` adalah skill per peran (architect, backend, frontend, security, qa, performance, ux, dll). Muat skill yang relevan sebelum bekerja di domainnya.
 
 ## 2. Rahasia dan file env (tidak bisa ditawar)
@@ -169,7 +169,7 @@ Aturan untuk perubahan di area ini:
 Auth dan kontrol mati (Fase 3), status per 2026-10-14:
 
 * **Selesai: `redirectTo`.** Login membaca `?redirectTo=` lewat `safeRedirectPath` (`lib/auth-guard.ts`), yang hanya menerima path internal dan menolak `//host`, `/\host`, URL absolut, karakter kontrol, dan `/login`. Proxy sebelumnya menggandakan query string (`/p?x=1` menjadi `redirectTo=/p?x=1?x=1`); `getRedirectUrl` kini menerima path lengkap dan tidak menambah lagi. Terverifikasi pada server produksi.
-* **Selesai: pendaftaran ditutup (2026-10-14).** DevOS satu pengguna dan pendaftaran publik adalah non-goal (`docs/vision/05-non-goals.md`); semua pengguna yang login bisa mengakses modul Docker dan secrets. Hanya `OWNER_EMAIL` yang bisa membuat akun, dipaksa di better-auth lewat `databaseHooks.user.create.before` (`lib/signup-policy.ts`) sehingga berlaku untuk semua jalur pembuatan user. Tanpa `OWNER_EMAIL` tidak ada yang bisa mendaftar (gagal tertutup). UI login tidak lagi punya mode daftar. Akun pemilik dibuat dengan `OWNER_EMAIL=... OWNER_PASSWORD=... bun run --cwd apps/web create-owner`, dijalankan sendiri oleh pemilik; agent tidak menjalankannya dan tidak membaca nilainya. Jangan menambah social login atau plugin yang membuat user tanpa melewati hook ini.
+* **Selesai: pendaftaran ditutup (2026-10-14).** DevOS satu pengguna dan pendaftaran publik adalah non-goal (`docs/product/overview.md`); semua pengguna yang login bisa mengakses modul Docker dan secrets. Hanya `OWNER_EMAIL` yang bisa membuat akun, dipaksa di better-auth lewat `databaseHooks.user.create.before` (`lib/signup-policy.ts`) sehingga berlaku untuk semua jalur pembuatan user. Tanpa `OWNER_EMAIL` tidak ada yang bisa mendaftar (gagal tertutup). UI login tidak lagi punya mode daftar. Akun pemilik dibuat dengan `OWNER_EMAIL=... OWNER_PASSWORD=... bun run --cwd apps/web create-owner`, dijalankan sendiri oleh pemilik; agent tidak menjalankannya dan tidak membaca nilainya. Jangan menambah social login atau plugin yang membuat user tanpa melewati hook ini.
 * **Selesai: kontrol mati dihapus.** Tombol notifikasi dan menu pengguna di Topbar (avatar kini gambar ber-nama, bukan tombol), grup "Quick Actions" di command palette (hanya `console.log`), pintasan "⌘B / G lalu D / G lalu W" di Settings (tidak ada implementasinya), dan tombol "Edit Profile". Profil di Settings memakai data sesi (sebelumnya "Rizqy" dan "dev@rizqy.me" ditulis keras).
 * **Belum, sengaja:** reset password tetap hanya `console.log` tautan di server (tidak ada pengiriman email); pesannya sudah jujur ("Check the server console"). Jangan menyebut fitur ini berfungsi di produksi sebelum ada penyedia email. Teks login disederhanakan, tetapi gaya visual login (gradient, blur, animasi tak terbatas, ikon dekoratif) belum disentuh: itu Fase 4 dan 5.
 
@@ -249,7 +249,7 @@ Urutan kerja yang disarankan untuk sesi performa: ukur baseline → tema sebelum
 * `enableImplicitConversion` aktif: string `"false"` pada properti boolean diubah menjadi `true` sebelum validasi. Untuk DTO boolean pakai `@Transform(({ obj }) => obj.field)` agar nilai mentah yang divalidasi (contoh: `UpdateIntegrationDto`). Permintaan "nonaktifkan" bisa berakhir "aktifkan" bila ini terlewat.
 * `ThrottlerGuard` global aktif (`app.module.ts`, dipasang sebelum `AuthGuard` agar banjir request tak terautentikasi ditolak sebelum panggilan HTTP ke Next): 100 request/menit per IP, `POST /integrations/:provider` 10/menit, `/health` dikecualikan (`@SkipThrottle`). Galat 429 berkode `RATE_LIMITED` dengan header `Retry-After`. IP klien bergantung pada `TRUST_PROXY_HOPS` (0 bila API terbuka langsung seperti docker-compose; 1 di `render.yaml` **[verifikasi jumlah hop di Render]**). Nilai terlalu kecil di belakang proxy membuat semua pengguna berbagi satu jatah; nilai terlalu besar membuat header `X-Forwarded-For` palsu bisa menghindari batas. Penyimpanan counter di memori proses: tidak dibagi antar instance. Teruji di `shared/throttling.http.spec.ts`.
 * Operasi multi-langkah memakai transaksi. Endpoint daftar memakai `PaginationQueryDto`.
-* Permintaan keluar ke URL buatan pengguna (monitoring) harus melewati validasi host. Filter saat ini berbasis regex nama host dan tidak menangani resolusi DNS ke IP privat atau pengalihan; anggap itu celah SSRF yang belum tertutup **[verifikasi]** sebelum memperluas.
+* Permintaan keluar ke URL buatan pengguna (`infrastructure`, yang memeriksa `Project.deployUrl`) harus melewati validasi host. Filter saat ini berbasis regex nama host dan tidak menangani resolusi DNS ke IP privat atau pengalihan; anggap itu celah SSRF yang belum tertutup **[verifikasi]** sebelum memperluas.
 * Perubahan skema: ubah `prisma/schema.prisma`, buat migrasi, jangan edit migrasi yang sudah ada. Persetujuan pengguna wajib sebelum menjalankan migrasi.
 * Env baru: tambahkan ke `env.validation.ts` (Zod), `.env.example` (placeholder), `render.yaml`/`docker-compose.yml` bila relevan, dan `turbo.json` `globalEnv` bila memengaruhi build.
 
@@ -257,13 +257,14 @@ Urutan kerja yang disarankan untuk sesi performa: ukur baseline → tema sebelum
 
 Jangan memperluas; bereskan hanya bila diminta atau saat menyentuh file itu.
 
-* **Dependensi tidak diimpor sama sekali di `src`** (hasil grep per 2026-10-14; konfirmasi dengan `depcheck` sebelum menghapus, penghapusan butuh persetujuan):
-  * web: `next-themes`, `xterm`, `@xterm/addon-fit`, `socket.io-client`, `recharts`, `react-hook-form`, `@hookform/resolvers`, `zod`, `date-fns`, `@radix-ui/react-{dialog,select,popover,tooltip,switch,scroll-area,avatar,separator}`.
+* **Dependensi tidak diimpor sama sekali di `src`** (hasil grep impor per 2026-10-30; penghapusan butuh persetujuan):
+  * web: `xterm`, `@xterm/addon-fit`, `socket.io-client`, `recharts`, `react-hook-form`, `@hookform/resolvers`, `zod`, `date-fns`, `@radix-ui/react-{select,popover,tooltip,switch,scroll-area,avatar,separator}`. `@radix-ui/react-dialog` kini dipakai (`Sheet`, palet, drawer). `next-themes` belum dipakai tetapi direncanakan di Fase E1.
   * api: `socket.io`, `@nestjs/websockets`, `@nestjs/platform-socket.io`, `@nestjs/bullmq`, `bullmq`, `@nestjs/jwt`, `@nestjs/schedule`, `better-auth`.
+  * Root `package.json` bukan sekadar duplikat: `@prisma/adapter-pg` diimpor web (`lib/auth.ts`) dan API tetapi hanya tercantum di root. Pindahkan ke workspace sebelum menghapus dari root.
   * Dependensi tak terpakai tidak membesarkan bundle, tetapi menambah waktu install dan permukaan serangan rantai pasok. `better-auth`, `@prisma/client`, `pg`, `@vercel/speed-insights`, `lucide-react` juga diduplikasi di `package.json` root dan workspace.
-* Pelanggaran gaya di kode lama: 12 pemakaian `any` eksplisit tersisa di web (lint); gaya login dan spinner sudah dibersihkan di Fase 4.
-* `docs/engineering/standards.md` dan `docs/architecture/*` perlu disinkronkan dengan kenyataan (lihat bagian 1).
-* Perilaku `GITHUB_CLIENT_*` / `GOOGLE_CLIENT_*` di env tanpa implementasi: hapus dari konfigurasi atau implementasikan OAuth, putuskan bersama pengguna.
+* Pelanggaran gaya di kode lama: `any` eksplisit di web sudah habis (2026-10-30); di API tersisa sebagai peringatan lint (23). Gaya login dan spinner sudah dibersihkan di Fase 4.
+* Temuan saat menulis ulang docs (2026-11-01): `GET/PATCH /settings` dan model `UserSettings` tidak dipakai web (tema dan aksen hanya di localStorage); pengaturan density tidak berefek; editor `/knowledge/notes/[id]` tidak punya tautan masuk. Tercatat di `docs/product/overview.md` bagian 7.
+* `GITHUB_CLIENT_*`, `GOOGLE_CLIENT_*`, `R2_*`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `MEILI_*`: dihapus dari `env.validation.ts`, `.env.example`, dan compose pada 2026-10-30 (ROADMAP Fase S butir 4-5: tidak dibaca kode mana pun). OAuth tetap ditunda; menambahkannya kembali berarti menambah env sekaligus implementasinya.
 
 ## 10. Pesan commit dan PR
 

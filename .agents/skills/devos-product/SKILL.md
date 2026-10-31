@@ -1,44 +1,28 @@
-spipu
-
 ---
 name: devos-product
-description: Activate when the user wants to brainstorm features, define product requirements, write PRDs, or design user flows and UI/UX behavior.
+description: Activate when the user wants to brainstorm features, define product requirements, write a feature spec, or design user flows and acceptance criteria.
 ---
-# DevOS Product & Ideation Guidelines
 
-As the DevOS Product Agent, you are responsible for translating abstract ideas into concrete, actionable engineering tasks. Because DevOS is targeted at a student/free-tier budget, your primary goal is maximizing utility while minimizing infrastructure costs and code bloat.
+# DevOS Product
 
-## 1. Product Requirements Document (PRD) Standard
+You turn ideas into features that can be built in this repository, for one user at zero running cost.
 
-Whenever a new major feature is requested, you MUST create or update a markdown file in `docs/product/`.
-The PRD must follow this exact structure:
+## Read first
 
-- **Title & Status:** (e.g., `Status: In Progress | MVP | V2`)
-- **Problem Statement:** What user pain point are we solving? (Max 2 sentences).
-- **Target Audience:** Who is this for?
-- **Proposed Solution:** High-level summary of the feature.
-- **Scope (MVP vs V2):** Explicitly list what is IN scope for MVP and what is OUT of scope (deferred to V2).
-- **User Flows:** Step-by-step numbered list of how the user interacts with the UI.
+- [docs/product/overview.md](../../../docs/product/overview.md): purpose, constraints, modules, flows, non-goals
+- [docs/plans/ROADMAP.md](../../../docs/plans/ROADMAP.md): what is planned and what is decided
 
-## 2. UI/UX Ideation & Wireframing
+## Rules
 
-- **Design System:** DevOS uses Tailwind CSS (V4) with a modern, sleek, minimalistic, dark-mode first aesthetic.
-- **Component Reusability:** Always design features that can reuse existing `components/ui/` (buttons, dialogs, cards) rather than inventing new UI patterns.
-- **Interactivity:** Suggest micro-interactions. For example, "When a task is checked, use Framer Motion to shrink it slightly and fade it out with a spring animation."
-- **Wireframing:** Provide layout structures in Markdown tables or ASCII art to help the Frontend agent visualize the layout before coding.
+- A feature must answer a question the owner asks every week; otherwise it does not belong in DevOS.
+- Free tiers only. No paid services, no background workers or queues, no host control.
+- Reuse existing modules and components before proposing new ones.
+- Write a spec as a section in `docs/product/overview.md`, or as `docs/product/<feature>.md` when it is large, with: problem (two sentences at most), user steps, inputs, success criteria, loading, empty, and error states, what is out of scope, and an acceptance checklist.
+- Acceptance criteria are observable: what the user sees, what the API returns, what is stored.
 
-## 3. Cost-Effective Engineering (The "Student Budget" Rule)
+## Checklist
 
-- **Avoid 3rd Party Subscriptions:** Do not suggest integrations with expensive SaaS tools unless explicitly requested. Prefer local implementations or open-source self-hosted alternatives (e.g., Redis for caching instead of a paid caching service).
-- **Database Efficiency:** Design features that minimize database reads/writes. Suggest caching strategies or batch operations.
-- **Background Processing:** If a feature requires heavy processing, explicitly design it to run asynchronously via BullMQ so the main UI does not block.
-
-## 4. User Stories & Acceptance Criteria
-
-When breaking a PRD into tasks, format them as standard User Stories:
-
-- **Story:** "As a [type of user], I want [some goal] so that [some reason]."
-- **Acceptance Criteria (AC):**
-  - AC 1: Must happen X.
-  - AC 2: If error, show Y.
-  - AC 3: Must render under Z ms.
+- [ ] Fits the constraints and non-goals?
+- [ ] Every state (loading, empty, error) described?
+- [ ] Server-side validation listed for every input?
+- [ ] Added to ROADMAP when it is planned work?

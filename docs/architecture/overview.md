@@ -1,61 +1,46 @@
 # System Architecture Overview
 
-This document is the entry point for understanding the complete DevOS
-technical architecture. It connects frontend, backend, database, and
-infrastructure into one coherent picture.
+This document is the entry point for understanding the DevOS technical
+architecture as it exists in the code. It connects frontend, backend,
+database, and infrastructure into one picture.
 
-Reference ADRs for the reasoning behind each decision.
+Scope and business flows: [docs/product/overview.md](../product/overview.md).
+Plan: [docs/plans/ROADMAP.md](../plans/ROADMAP.md). Reference ADRs for the reasoning behind each decision.
 
 ---
 
 ## System Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Browser / PWA                            │
-│                    rizky.web.id (HTTPS)                         │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Caddy (Reverse Proxy)                        │
-│            Let's Encrypt SSL — managed by Coolify               │
-└──────────────────┬──────────────────────┬───────────────────────┘
-                   │                      │
-                   ▼                      ▼
-     ┌─────────────────────┐  ┌─────────────────────┐
-     │   Next.js 15        │  │   NestJS 11          │
-     │   Port: 3000        │  │   Port: 3001         │
-     │                     │  │                      │
-     │  App Router         │  │  REST API            │
-     │  React Server       │  │  Better Auth         │
-     │  Components         │  │                      │
-     │  shadcn/ui          │  │                      │
-     │  TanStack Query     │  │                      │
-     │  Zustand            │  │                      │
-     └─────────────────────┘  └──────────┬───────────┘
-                                          │
-              ┌───────────────────────────┼───────────────────────┐
-              │                           │                       │
-              ▼                           ▼                       ▼
-  ┌───────────────────┐     ┌─────────────────────┐  ┌──────────────────┐
-  │  PostgreSQL 17    │     │    Redis 7           │
-  │  Port: 5432       │     │    Port: 6379        │
-  │                   │     │                      │
-  │  Primary data     │     │  Session store       │
-  │  Prisma ORM       │     │  Query cache         │
-  │  Migrations       │     │  Rate limiting       │
-  │  Soft deletes     │     │                      │
-  └───────────────────┘     └─────────────────────┘
+                         Browser (one user)
+                    │                        │
+       pages, /api/auth/*           fetchApi → /api/v1/*  (credentials: include)
+                    ▼                        ▼
+┌──────────────────────────────┐   ┌──────────────────────────────────────┐
+│ apps/web — Next.js 16        │   │ apps/api — NestJS 11                  │
+│ port 3000                    │   │ port 3001, prefix /api/v1             │
+│                              │   │                                       │
+│ App Router, React 19         │◄──┤ AuthGuard: GET <BETTER_AUTH_URL>      │
+│ src/proxy.ts (session gate)  │   │   /api/auth/get-session (cookie fwd)  │
+│ Better Auth (email+password, │   │ ThrottlerGuard (before AuthGuard)     │
+│   owner-only signup)         │   │ ValidationPipe, helmet, CORS=APP_URL  │
+│ TanStack Query, Zustand      │   │ AES-256-GCM for secrets and tokens    │
+└──────────────┬───────────────┘   └───────┬──────────────┬───────────────┘
+               │ Prisma (auth tables)      │ Prisma       │ ioredis
+               ▼                           ▼              ▼
+        ┌─────────────────────────────────────┐   ┌──────────────────────┐
+        │ PostgreSQL (Supabase, free tier)    │   │ Redis (hosted, TLS)  │
+        │ schema: prisma/schema.prisma        │   │ readiness check only │
+        └─────────────────────────────────────┘   └──────────────────────┘
 
-              External Services (API integrations)
-              ┌─────────────────────────────────────┐
-              │  GitHub API       Vercel API         │
-              │  Cloudflare API   Docker API         │
-              │  Supabase API     OpenAI / Anthropic │
-              │  Resend (email)   Cloudflare R2      │
-              └─────────────────────────────────────┘
+        Outbound from the API: GitHub REST API, Vercel REST API,
+        and HTTP/TLS checks against the deploy URLs entered in Projects.
 ```
+
+Sessions are stored in Postgres by Better Auth. The API never reads the session table; it
+asks the web app. Integration tokens for GitHub and Vercel are entered in Settings, verified
+with the provider, and stored encrypted in the `Integration` table; they are not environment
+variables.
 
 ---
 
@@ -63,14 +48,30 @@ Reference ADRs for the reasoning behind each decision.
 
 | Decision | Technology | ADR |
 |----------|-----------|-----|
-| Frontend framework | Next.js 15 (App Router) | [ADR-001](./adr/ADR-001-nextjs-framework.md) |
+| Frontend framework | Next.js 16 (App Router, built with `--webpack`) | [ADR-001](./adr/ADR-001-nextjs-framework.md) |
 | Backend framework | NestJS 11 | [ADR-002](./adr/ADR-002-nestjs-backend.md) |
-| Primary database | PostgreSQL 17 + Prisma | [ADR-003](./adr/ADR-003-postgresql-database.md) |
-| Authentication | Better Auth | [ADR-004](./adr/ADR-004-better-auth.md) |
-| Deployment | Docker + Coolify | [ADR-005](./adr/ADR-005-docker-coolify-deployment.md) |
-| Cache | Redis 7 | (to be documented) |
-| Storage | Cloudflare R2 | (to be documented) |
-| UI Components | Tailwind CSS v4 + shadcn/ui | (to be documented) |
+| Primary database | PostgreSQL on Supabase + Prisma 7 | [ADR-003](./adr/ADR-003-postgresql-database.md) |
+| Authentication | Better Auth, email and password, single owner | [ADR-004](./adr/ADR-004-better-auth.md) |
+| Deployment | Planned: web on Vercel, API on Render (Fase P) | [ADR-005](./adr/ADR-005-docker-coolify-deployment.md) (under review) |
+| Cache | Redis (kept because it is free; used for readiness only) | (to be documented) |
+| UI | Tailwind CSS 4, Radix primitives, components in `components/ui` | (to be documented) |
+
+---
+
+## API Modules
+
+| Module | Routes (`/api/v1/...`) | Purpose |
+|---|---|---|
+| projects | `projects` | Project registry: repo URL, deploy URL, stack, status |
+| workspace | `workspace/todos`, `workspace/notes`, `workspace/bookmarks` | Tasks, notes, scratchpad; bookmarks back the planned Links page |
+| knowledge | `knowledge/snippets`, `knowledge/notes` | Snippets and notes |
+| ai | `ai/prompts` | Prompt library, shown as the Prompts tab in Knowledge |
+| integrations | `integrations`, `integrations/github/*`, `integrations/vercel/*` | GitHub and Vercel tokens and data |
+| infrastructure | `infrastructure/ssl*`, `infrastructure/health*` | Uptime and SSL checks |
+| audit | `audit-log` | Read-only audit trail |
+| secrets | `secrets` | Encrypted secret vault |
+| settings | `settings` | User settings |
+| (root) | `health`, `health/liveness`, `health/readiness` | Platform probes (public, not throttled) |
 
 ---
 
@@ -78,111 +79,68 @@ Reference ADRs for the reasoning behind each decision.
 
 ```
 Rizqydevos/
-│
 ├── apps/
-│   ├── web/                  ← Next.js frontend
-│   │   ├── src/
-│   │   ├── public/
-│   │   ├── next.config.ts
-│   │   └── package.json
-│   │
-│   └── api/                  ← NestJS backend
-│       ├── src/
-│       ├── prisma/
-│       │   ├── schema.prisma
-│       │   └── migrations/
-│       └── package.json
-│
-├── packages/                 ← Shared code (types, utils)
-│   ├── types/                ← Shared TypeScript types
-│   └── validators/           ← Shared Zod schemas
-│
-├── docs/                     ← All documentation
-├── .agents/                  ← AI agent skills
-├── docker-compose.yml        ← Full stack local development
-├── docker-compose.prod.yml   ← Production overrides
-├── .env.example              ← Required environment variables
-└── package.json              ← Turborepo root
+│   ├── web/                  ← Next.js app (also hosts Better Auth)
+│   │   ├── src/              ← app/, components/, lib/, stores/, proxy.ts
+│   │   ├── e2e/              ← Playwright (system Chrome)
+│   │   └── scripts/          ← create-owner.ts
+│   └── api/                  ← NestJS API
+│       └── src/              ← modules/, shared/, config/, database/, cache/
+├── packages/
+│   └── types/                ← @devos/types (shared TypeScript types)
+├── prisma/                   ← schema.prisma and migrations (shared by web and api)
+├── docs/
+├── docker-compose.dev.yml    ← Local Postgres and Redis
+├── docker-compose.yml        ← References Dockerfiles that do not exist yet (Fase P)
+├── render.yaml               ← API service only (Fase P)
+├── .env.example              ← Which variable each program reads
+└── package.json              ← Bun workspaces + Turborepo
 ```
 
 ---
 
 ## Data Flow
 
-### Read Flow (typical)
+### Read
 
 ```
-User opens Dashboard
-  │
-  ▼
-Next.js Server Component fetches initial data server-side
-  │
-  ▼
-NestJS API → Service → PostgreSQL
-  │
-  ▼
-Data returned as props to Client Components
-  │
-  ▼
-TanStack Query handles background refresh + caching
-  │
-  ▼
-Zustand handles UI state (sidebar, widget layout)
+Client Component (useQuery with a key from queryKeys)
+  → fetchApi('/endpoint')          browser → API, session cookie attached
+  → ThrottlerGuard → AuthGuard     AuthGuard asks the web app whether the session is valid
+  → Controller → Service → Prisma → PostgreSQL
+  → { success: true, data }        unwrapped by fetchApi
 ```
 
-### Write Flow (typical)
+### Write
 
 ```
-User creates a Todo
-  │
-  ▼
-React Hook Form validates with Zod schema (client)
-  │
-  ▼
-TanStack Mutation → POST /api/v1/workspace/todos
-  │
-  ▼
-NestJS: DTO validation → Service → Prisma → PostgreSQL
-  │
-  ▼
-Service invalidates Redis cache for this user's todos
-  │
-  ▼
-Audit log entry created
-  │
-  ▼
-Response → TanStack Query optimistic update already shown
-  │
-  ▼
-UI reflects confirmed state
+Form → useMutation → fetchApi(POST/PATCH/DELETE)
+  → ValidationPipe (DTO, whitelist + forbidNonWhitelisted)
+  → Service → Prisma (+ AuditService for projects, secrets, integrations)
+  → invalidateQueries on success
 ```
 
-### Background Polling Flow
-
-```
-Server metric changes (Docker container goes down)
-  │
-  ▼
-Next.js Client polls /api/v1/developer/docker/containers
-  │
-  ▼
-NestJS runs Docker CLI
-  │
-  ▼
-Dashboard widget updates without page refresh
-```
+Errors use one envelope from `GlobalExceptionFilter`. Integration failures carry typed codes
+(`INTEGRATION_NOT_CONFIGURED`, `TOKEN_REJECTED`, `RATE_LIMITED`, ...); 401 means only that the app
+session expired.
 
 ---
 
 ## Security Layers
 
 ```
-Layer 1: Cloudflare (WAF, DDoS protection, bot protection)
-Layer 2: Caddy (HTTPS enforcement, security headers)
-Layer 3: NestJS (AuthGuard, rate limiting, input validation)
-Layer 4: PostgreSQL (parameterized queries, no raw SQL)
-Layer 5: Application (encrypted secrets, audit log)
+Web:   src/proxy.ts redirects unauthenticated page requests to /login (safe redirectTo)
+       Better Auth: registration limited to OWNER_EMAIL
+API:   ThrottlerGuard (100/min per IP, 10/min for connecting an integration)
+       AuthGuard (global, @Public() for health only)
+       ValidationPipe, helmet, CORS limited to APP_URL
+Data:  AES-256-GCM for secret values and integration tokens (ENCRYPTION_KEY, exactly 32 bytes)
+       Audit log for connect/disconnect, secret create/reveal/delete
 ```
+
+Known gaps are tracked in [ROADMAP.md](../plans/ROADMAP.md): SSRF hardening of the uptime check (Fase F),
+2FA before the vault holds real passwords (Fase C), and the session cookie reaching the API across
+domains in production (Fase P).
 
 ---
 
@@ -190,13 +148,12 @@ Layer 5: Application (encrypted secrets, audit log)
 
 | Concern | Development | Production |
 |---------|------------|-----------|
-| Frontend | `next dev` (hot reload) | Docker container |
-| Backend | `nest start --watch` | Docker container |
-| Database | PostgreSQL via Docker | PostgreSQL via Docker |
-| Redis | Redis via Docker | Redis via Docker |
-| HTTPS | HTTP (localhost) | Caddy + Let's Encrypt |
-| Secrets | `.env.local` | Coolify environment vars |
-| Deploy | Manual `npm run dev` | Auto-deploy on push to `main` |
+| Web | `bun run dev` (turbo, port 3000) | Vercel (planned, Fase P) |
+| API | `bun run dev` (turbo, port 3001) | Render (planned; `render.yaml` exists, Fase P) |
+| Database | Supabase, or Postgres from `docker-compose.dev.yml` | Supabase |
+| Redis | Hosted Redis, or `docker-compose.dev.yml` | Hosted Redis |
+| Migrations | `prisma migrate dev` (owner approves) | `prisma migrate deploy`, step not wired yet (Fase P) |
+| Secrets | `apps/api/.env`, `apps/web/.env`, root `.env` (see `.env.example`) | Platform environment variables |
 
 ---
 
@@ -204,16 +161,18 @@ Layer 5: Application (encrypted secrets, audit log)
 
 | Document | Description |
 |----------|-------------|
-| [frontend.md](./frontend.md) | Next.js folder structure, state management, routing, performance |
-| [backend.md](./backend.md) | NestJS modules, clean architecture, API design, auth, queues |
-| [database.md](./database.md) | Prisma schema, models, migration strategy, encryption |
+| [../product/overview.md](../product/overview.md) | Scope, modules, business flows, non-goals |
+| [frontend.md](./frontend.md) | Routes, auth, data fetching, client state, testing |
+| [backend.md](./backend.md) | Request flow, error codes, module rules, testing |
+| [database.md](./database.md) | Models, conventions, encryption, migrations |
+| [../design/design-system.md](../design/design-system.md) | Tokens, components, UI patterns |
 | [adr/ADR-001](./adr/ADR-001-nextjs-framework.md) | Why Next.js |
 | [adr/ADR-002](./adr/ADR-002-nestjs-backend.md) | Why NestJS |
 | [adr/ADR-003](./adr/ADR-003-postgresql-database.md) | Why PostgreSQL |
 | [adr/ADR-004](./adr/ADR-004-better-auth.md) | Why Better Auth |
-| [adr/ADR-005](./adr/ADR-005-docker-coolify-deployment.md) | Why Docker + Coolify |
+| [adr/ADR-005](./adr/ADR-005-docker-coolify-deployment.md) | Deployment (under review) |
 
 ---
 
-*Last updated: 2026-07-17*
-*Status: Foundation*
+*Last updated: 2026-11-01*
+*Status: Active*

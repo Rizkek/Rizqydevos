@@ -1,77 +1,104 @@
 # DevOS
 
-> **A personal command center for software engineers.**
-
-```
-rizky.web.id
-```
-
----
-
-## What is this?
-
-DevOS is a self-hosted personal space for one developer: links, knowledge,
-prompts, passwords worth backing up, a registry of projects, and a glance at
-GitHub, Vercel, and the uptime of your own sites. One user, zero running cost.
-
-Scope decision (2026-10-14): [docs/vision/06-scope-update-2026-10.md](./docs/vision/06-scope-update-2026-10.md).
-Plan: [docs/plans/ROADMAP.md](./docs/plans/ROADMAP.md). Resume work: [docs/plans/HANDOFF.md](./docs/plans/HANDOFF.md).
+DevOS keeps links, knowledge (snippets, notes, prompts), passwords and secrets worth backing up, a registry of projects, and a glance at GitHub, Vercel, and the uptime and SSL expiry of your own sites. One user, zero running cost, no public registration.
 
 ---
 
 ## Modules
 
-| Module | Purpose |
-|--------|---------|
-| **Dashboard** | Today at a glance: tasks, notes, GitHub activity, deployments |
-| **Projects** | Registry of projects: repository, deploy URL, stack, status |
-| **Links** | Bookmarks with tags, pin, search, import and export (UI planned) |
-| **Knowledge** | Snippets, notes, and prompts |
-| **Developer** | GitHub activity, pull requests, repositories |
-| **Infrastructure** | Vercel deployments, uptime and SSL expiry of your sites |
-| **Security** | Per-project security checklist and the password and secret vault |
-| **Workspace** | Todo, notes, scratchpad |
-| **Settings** | Appearance and integrations |
+| Module | Purpose | Status |
+|---|---|---|
+| Dashboard | Today at a glance: tasks, scratchpad, GitHub activity, deployments, snippets | Working |
+| Projects | Repository, deploy URL, stack, status | Working |
+| Workspace | Todos and scratchpad | Working |
+| Knowledge | Snippets and prompts (notes editor without an entry point yet) | Working |
+| Developer | GitHub activity, open pull requests, repositories | Working |
+| Infrastructure | Vercel deployments, uptime and SSL expiry of project deploy URLs | Working |
+| Security | Encrypted secret vault and audit log; per-project checklist planned | Working, hardening planned |
+| Settings | Profile, appearance, GitHub and Vercel tokens | Working |
+| Links | Bookmarks with tags, import and export | Planned (backend ready) |
+
+Full description and business flows: [docs/product/overview.md](./docs/product/overview.md).
 
 ---
 
-## Tech Stack
+## Tech stack
 
 | Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js + TypeScript |
-| UI | Tailwind CSS + shadcn/ui |
-| State | TanStack Query + Zustand |
-| Backend | NestJS |
-| Database | PostgreSQL + Prisma |
-| Cache | Redis |
-| Auth | Better Auth (email and password, single owner; 2FA or passkey planned) |
-| Deployment | Docker + Coolify |
+|---|---|
+| Monorepo | Bun workspaces, Turborepo |
+| Web (`apps/web`) | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Radix primitives, TanStack Query, Zustand, nuqs, cmdk |
+| Auth | Better Auth inside the web app: email and password, single owner (`OWNER_EMAIL`), 7-day session cookie |
+| API (`apps/api`) | NestJS 11, class-validator, Pino, Throttler, Octokit (GitHub), Vercel REST |
+| Data | PostgreSQL (Supabase) with Prisma 7; Redis for readiness |
+| Security | AES-256-GCM for secrets and integration tokens, audit log |
+| Tests | Vitest, Testing Library, Playwright with axe |
+| Deployment | Planned: web on Vercel, API on Render (ROADMAP Fase P). Not deployed yet |
+
+Architecture: [docs/architecture/overview.md](./docs/architecture/overview.md).
+
+---
+
+## Repository layout
+
+```
+apps/web        Next.js app (pages, Better Auth, UI)
+apps/api        NestJS API (/api/v1)
+packages/types  Shared TypeScript types (@devos/types)
+prisma          Schema and migrations, shared by web and api
+docs            Product, architecture, design, standards, plans
+```
+
+---
+
+## Getting started
+
+Requirements: Bun 1.3+, Node 20+, a PostgreSQL database (Supabase or `docker-compose.dev.yml`), and Redis.
+
+```bash
+bun install                                   # also runs prisma generate
+```
+
+Create three env files. `.env.example` (local, not tracked) lists every variable and which program reads it:
+
+| File | Read by | Main variables |
+|---|---|---|
+| `apps/api/.env` | API | `APP_URL`, `DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY` |
+| `apps/web/.env` | Web | `DATABASE_URL`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `NEXT_PUBLIC_API_URL` |
+| `.env` (root) | Prisma CLI | `DATABASE_URL` (session pooler, port 5432 on Supabase) |
+
+GitHub and Vercel tokens are not environment variables: add them in Settings after signing in.
+
+```bash
+bunx prisma migrate deploy                    # apply migrations (owner approves)
+bun run dev                                   # web on :3000, api on :3001
+```
+
+Create the owner account once (the only account that can exist):
+
+```powershell
+# PowerShell
+$env:OWNER_EMAIL = "you@example.com"; $env:OWNER_PASSWORD = "<password>"; bun run --cwd apps/web create-owner
+```
+
+```bash
+# Git Bash
+OWNER_EMAIL=you@example.com OWNER_PASSWORD='<password>' bun run --cwd apps/web create-owner
+```
+
+## Scripts (from the root)
+
+| Command | What it does |
+|---|---|
+| `bun run dev` | Web and API in watch mode |
+| `bun run build` | Production build of both apps |
+| `bun run type-check` | TypeScript in every workspace |
+| `bun run lint` | ESLint in web and api |
+| `bun run test` | Vitest in web and api |
+| `bun run --cwd apps/web test:e2e` | Playwright browser tests (after `bun run build`) |
 
 ---
 
 ## Documentation
 
-All documentation lives in [`/docs`](./docs/README.md).
-
-Start here: [Vision](./docs/vision/01-vision.md)
-
----
-
-## Status
-
-> 🚧 **Phase 0 — Foundation**
-> Documentation and architecture in progress. No code yet.
-
----
-
-## Relationship with TRASON
-
-DevOS is not TRASON. TRASON is a career management SaaS product.
-DevOS is a personal developer workspace. They are complementary.
-
-→ [TRASON](https://github.com/rizkek/TRASON)
-
----
-
-*Self-hosted. Personal. Open architecture.*
+Index: [docs/README.md](./docs/README.md). Current plan: [docs/plans/ROADMAP.md](./docs/plans/ROADMAP.md). Working rules for AI agents: [AGENTS.md](./AGENTS.md).

@@ -1,3 +1,5 @@
+> **Update 2026-10-30**: Better Auth stands, with email and password only. Registration is closed: only `OWNER_EMAIL` can create the account (`apps/web/src/lib/signup-policy.ts`). Passkey/2FA is planned for the vault (Fase C); GitHub and Google OAuth are not implemented. See [product/overview.md](../../product/overview.md).
+
 # ADR-004 — Use Better Auth for Authentication
 
 **Date:** 2026-07-17

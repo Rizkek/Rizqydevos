@@ -1,3 +1,5 @@
+> **Update 2026-10-30**: the decision stands. Mentions of WebSockets, queues, Docker control, or R2 storage refer to features that are out of scope. See [product/overview.md](../../product/overview.md).
+
 # ADR-002 — Use NestJS as the Backend Framework
 
 **Date:** 2026-07-17
