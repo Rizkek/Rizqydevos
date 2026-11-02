@@ -20,6 +20,8 @@ model User {
   avatarUrl     String?
   timezone      String  @default("Asia/Jakarta")
   emailVerified Boolean @default(false)
+  // Set by the Better Auth twoFactor plugin once the authenticator code was confirmed.
+  twoFactorEnabled Boolean? @default(false)
 
   // Relations
   sessions     Session[]
@@ -35,11 +37,30 @@ model User {
   integrations Integration[]
   secrets      Secret[]
   aiPrompts    AiPrompt[]
+  checklist    ChecklistItem[]
+  twoFactors   TwoFactor[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("user")
+}
+
+// Better Auth twoFactor plugin: TOTP secret and backup codes, both encrypted by the plugin.
+model TwoFactor {
+  id                      String    @id
+  secret                  String
+  backupCodes             String
+  userId                  String
+  verified                Boolean?  @default(true)
+  failedVerificationCount Int?      @default(0)
+  lockedUntil             DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([secret])
+  @@index([userId])
+  @@map("twoFactor")
 }
 
 // Better Auth session model
@@ -242,6 +263,8 @@ model Project {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  checklist ChecklistItem[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -260,10 +283,13 @@ enum ProjectStatus {
 model Secret {
   id          String    @id @default(cuid())
   name        String
-  key         String
+  key         String // what the secret is for: a site host for logins, a variable name for API keys
+  username    String    @default("") // empty when the secret has no account; part of the unique key so one site can hold several logins
+  url         String?
+  tags        String[]  @default([])
   value       String // AES-256-GCM encrypted at app layer before storing
-  category    String? // 'api-key' | 'oauth' | 'database' | 'ssh' | etc.
-  description String?
+  category    String? // the type: 'password' | 'api-key' | 'oauth' | 'database' | 'ssh' | etc.
+  description String? // free-form notes
   deletedAt   DateTime?
 
   userId String
@@ -272,7 +298,9 @@ model Secret {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, key])
+  checklist ChecklistItem[]
+
+  @@unique([userId, key, username])
   @@index([userId, deletedAt])
 }
 
@@ -294,6 +322,32 @@ model AuditLog {
   @@index([userId, action])
   @@index([userId, resource])
   @@index([createdAt])
+}
+
+model ChecklistItem {
+  id         String    @id @default(cuid())
+  title      String
+  note       String?
+  done       Boolean   @default(false)
+  doneAt     DateTime? // when the item was last checked off
+  dueAt      DateTime? // when it should be checked again; an item past this date needs attention
+  repeatDays Int? // checking the item sets dueAt to now plus this many days
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Optional link to the vault entry the item is about (for example the key to rotate).
+  secretId String?
+  secret   Secret? @relation(fields: [secretId], references: [id], onDelete: SetNull)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, projectId])
+  @@index([userId, done, dueAt])
 }
 
 // ── Integrations ──────────────────────────────────────────────────────────────

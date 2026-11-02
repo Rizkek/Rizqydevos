@@ -186,6 +186,7 @@ export type WidgetType =
   | 'server-health'
   | 'quick-notes'
   | 'snippets'
+  | 'attention'
 
 export type WidgetSize = 'SMALL' | 'MEDIUM' | 'LARGE'
 

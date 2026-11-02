@@ -1,25 +1,41 @@
+# API on Render. The web app runs on Vercel (apps/web/vercel.json) and proxies /api/v1/* here.
+# Values marked sync: false are entered in the Render dashboard; never commit them.
 services:
   - type: web
     name: devos-api
     runtime: node
-    rootDir: apps/api
-    buildCommand: bun install && bun run build
-    startCommand: bun run start
+    plan: free
+    # Built from the repository root so Bun workspaces and the root postinstall (prisma generate) run.
+    buildCommand: npm install -g bun && bun install && bun run --cwd apps/api build
+    startCommand: node apps/api/dist/main.js
+    # Liveness only: readiness also needs Redis, and a Redis hiccup should not restart the service.
     healthCheckPath: /api/v1/health
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/**
+        - prisma/**
+        - package.json
+        - bun.lock
     envVars:
       - key: NODE_ENV
         value: production
-      - key: BETTER_AUTH_SECRET
+      - key: LOG_LEVEL
+        value: info
+      # Render's load balancer is the one proxy in front of the process.
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      # Origin of the Vercel app, for example https://devos.vercel.app
+      - key: APP_URL
         sync: false
       - key: BETTER_AUTH_URL
+        sync: false
+      - key: BETTER_AUTH_SECRET
         sync: false
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL
         sync: false
-      - key: APP_URL
-        sync: false
       - key: ENCRYPTION_KEY
         sync: false
-      - key: TRUST_PROXY_HOPS
-        value: "1"
