@@ -2,23 +2,7 @@ import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/
 import { SslService } from './ssl.service'
 import { AuthGuard } from '../../shared/guards/auth.guard'
 import { CurrentUser } from '../../shared/decorators/current-user.decorator'
-
-// Max 20 hosts per batch to prevent resource exhaustion
-const MAX_BATCH = 20
-// Deny private-network targets (loopback, link-local, RFC 1918, ::1, metadata)
-const PRIVATE_HOSTNAME_RE = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.0\.0\.0|\[?::1\]?|\[?fc|\[?fd)/i
-
-function validateHostname(hostname: string): void {
-  if (!hostname || hostname.length > 253) throw new BadRequestException('Invalid hostname')
-  if (PRIVATE_HOSTNAME_RE.test(hostname)) throw new BadRequestException('Private network targets are not permitted')
-}
-
-function validateUrl(rawUrl: string): void {
-  let parsed: URL
-  try { parsed = new URL(rawUrl) } catch { throw new BadRequestException('Invalid URL') }
-  if (!['http:', 'https:'].includes(parsed.protocol)) throw new BadRequestException('Only http/https URLs are permitted')
-  validateHostname(parsed.hostname)
-}
+import { MAX_BATCH, validateHostname, validateUrl } from './target-validation'
 
 // Uptime and SSL checks for the owner's own sites (formerly the Monitoring module).
 @Controller('infrastructure')

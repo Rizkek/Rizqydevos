@@ -3,8 +3,8 @@ import * as crypto from 'crypto'
 const ALGORITHM = 'aes-256-gcm'
 const KEY_LENGTH_BYTES = 32
 
-const getSecretKey = (): Buffer => {
-  const key = process.env.ENCRYPTION_KEY
+// Accepts 32 UTF-8 bytes, 64 hex characters, or base64 of 32 bytes (same rule as env.validation.ts).
+export function parseEncryptionKey(key: string | undefined): Buffer {
   if (!key) {
     throw new Error('ENCRYPTION_KEY must be configured')
   }
@@ -25,38 +25,51 @@ const getSecretKey = (): Buffer => {
   throw new Error('ENCRYPTION_KEY must encode exactly 32 bytes')
 }
 
-export function encrypt(text: string): string {
+const getSecretKey = (): Buffer => parseEncryptionKey(process.env.ENCRYPTION_KEY)
+
+export function encryptWithKey(text: string, key: Buffer): string {
   if (!text) return text
-  
+
   const iv = crypto.randomBytes(12)
-  const cipher = crypto.createCipheriv(ALGORITHM, getSecretKey(), iv)
-  
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
+
   let encrypted = cipher.update(text, 'utf8', 'hex')
   encrypted += cipher.final('hex')
-  
+
   const authTag = cipher.getAuthTag().toString('hex')
-  
+
   // Format: iv:authTag:encryptedText
   return `${iv.toString('hex')}:${authTag}:${encrypted}`
 }
 
-export function decrypt(encryptedText: string): string {
+export function decryptWithKey(encryptedText: string, key: Buffer): string {
+  // Values written before encryption existed have no separators and are returned as they are.
   if (!encryptedText || !encryptedText.includes(':')) return encryptedText
-  
+
   try {
-    const parts = encryptedText.split(':')
-    const iv = Buffer.from(parts[0]!, 'hex')
-    const authTag = Buffer.from(parts[1]!, 'hex')
-    const encrypted = parts[2]!
-    
-    const decipher = crypto.createDecipheriv(ALGORITHM, getSecretKey(), iv)
-    decipher.setAuthTag(authTag)
-    
+    const [ivHex = '', tagHex = '', encrypted = ''] = encryptedText.split(':')
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(ivHex, 'hex'))
+    decipher.setAuthTag(Buffer.from(tagHex, 'hex'))
+
     let decrypted = decipher.update(encrypted, 'hex', 'utf8')
     decrypted += decipher.final('utf8')
-    
+
     return decrypted
   } catch (error) {
     throw new Error('Unable to decrypt value', { cause: error })
   }
+}
+
+export function encrypt(text: string): string {
+  return encryptWithKey(text, getSecretKey())
+}
+
+export function decrypt(encryptedText: string): string {
+  return decryptWithKey(encryptedText, getSecretKey())
+}
+
+// Used by the key rotation script: re-encrypts one stored value from the old key to the new key.
+export function reencrypt(value: string, oldKey: Buffer, newKey: Buffer): string {
+  if (!value) return value
+  return encryptWithKey(decryptWithKey(value, oldKey), newKey)
 }

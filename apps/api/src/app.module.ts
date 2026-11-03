@@ -13,6 +13,7 @@ import { IntegrationsModule } from './modules/integrations/integrations.module'
 import { SecretsModule } from './modules/secrets/secrets.module'
 import { InfrastructureModule } from './modules/infrastructure/infrastructure.module'
 import { AuditModule } from './modules/audit/audit.module'
+import { ChecklistModule } from './modules/checklist/checklist.module'
 import { AiModule } from './modules/ai/ai.module'
 import { HealthController } from './health.controller'
 import { AuthGuard } from './shared/guards/auth.guard'
@@ -64,6 +65,7 @@ import { PinoLoggerService } from './shared/logger/pino-logger.service'
     SecretsModule,
     InfrastructureModule,
     AuditModule,
+    ChecklistModule,
     AiModule,
   ],
 })

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '../../database/prisma.service'
 import { Prisma } from '@prisma/client'
 
-type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'REVEAL_SECRET' | 'LOGIN' | 'LOGOUT'
+type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'REVEAL_SECRET' | 'EXPORT_SECRETS' | 'IMPORT_SECRETS' | 'LOGIN' | 'LOGOUT'
 
 import { PaginationQueryDto } from '../dto/pagination-query.dto'
 

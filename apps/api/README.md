@@ -36,6 +36,7 @@ Validated at startup by `src/config/env.validation.ts`; the API refuses to start
 | `bun run start` | Run `dist/main` |
 | `bun run test` | Vitest (`src/**/*.spec.ts`) |
 | `bun run lint` | ESLint 10 with `@typescript-eslint` |
+| `bun run rotate-key` | Re-encrypt stored secrets and tokens with a new `ENCRYPTION_KEY` (needs `OLD_ENCRYPTION_KEY`, `NEW_ENCRYPTION_KEY`, `DATABASE_URL`; `DRY_RUN=1` only checks) |
 | `bun run type-check` | TypeScript |
 
 Database commands run from the repository root, because the schema is in `prisma/`: `bunx prisma generate`, `bunx prisma migrate dev --name <change>`, `bunx prisma migrate deploy`, `bunx prisma studio`.
@@ -45,13 +46,14 @@ Database commands run from the repository root, because the schema is in `prisma
 | Module | Routes |
 |---|---|
 | projects | `GET/POST /projects`, `GET/PATCH/DELETE /projects/:id` |
-| workspace | `/workspace/todos`, `/workspace/notes`, `/workspace/bookmarks` (CRUD) |
+| workspace | `/workspace/todos`, `/workspace/notes`, `/workspace/bookmarks` (CRUD); `GET /workspace/bookmarks/all`, `POST /workspace/bookmarks/import` |
 | knowledge | `/knowledge/snippets`, `/knowledge/notes` (CRUD) |
 | ai | `/ai/prompts` (CRUD), `POST /ai/prompts/:id/usage` |
 | integrations | `GET /integrations`, `POST/PATCH/DELETE /integrations/:provider`, `GET /integrations/github/{activity,prs,repos}`, `GET /integrations/vercel/deployments` |
-| infrastructure | `GET /infrastructure/{ssl,health}` and `/batch` variants |
+| infrastructure | `GET /infrastructure/{ssl,health}` and `/batch` variants (private addresses refused) |
 | audit | `GET /audit-log` |
-| secrets | `/secrets` (CRUD), `GET /secrets/:id/reveal` |
+| checklist | `GET/POST /checklist`, `POST /checklist/templates`, `PATCH/DELETE /checklist/:id` |
+| secrets | `/secrets` (CRUD), `GET /secrets/:id/reveal`, `POST /secrets/backup`, `POST /secrets/restore` (reveal, backup, and restore need a sign-in from the last 15 minutes), `POST /secrets/import` (rows from a password manager CSV, optional dryRun) |
 | settings | `GET/PATCH /settings` |
 | health | `GET /health`, `/health/liveness`, `/health/readiness` (public) |
 

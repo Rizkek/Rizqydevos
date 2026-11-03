@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common'
 import { InfrastructureController } from './infrastructure.controller'
-import { SslService } from './ssl.service'
+import { HOST_LOOKUP, SslService } from './ssl.service'
+import { createGuardedLookup } from './host-guard'
 
 @Module({
   controllers: [InfrastructureController],
-  providers: [SslService],
+  providers: [SslService, { provide: HOST_LOOKUP, useFactory: () => createGuardedLookup() }],
   exports: [SslService],
 })
 export class InfrastructureModule {}

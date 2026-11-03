@@ -22,6 +22,9 @@ async function bootstrap() {
   const logger = await app.resolve(PinoLoggerService)
   app.useLogger(logger)
 
+  // Express defaults to 100 KB; a bookmark import (up to 2000 links) or a secrets backup can be larger.
+  app.useBodyParser('json', { limit: '4mb' })
+
   // Security headers
   app.use(helmet())
   app.use(cookieParser())

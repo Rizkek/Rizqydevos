@@ -1,7 +1,7 @@
 import { Module, Global } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { CacheService } from './cache.service'
-import Redis from 'ioredis'
+import { createRedisClient } from './redis.client'
 
 export const REDIS_CLIENT = 'REDIS_CLIENT'
 
@@ -11,7 +11,7 @@ export const REDIS_CLIENT = 'REDIS_CLIENT'
     {
       provide: REDIS_CLIENT,
       useFactory: (config: ConfigService) => {
-        return new Redis(config.get<string>('REDIS_URL') ?? 'redis://localhost:6379')
+        return createRedisClient(config.get<string>('REDIS_URL') ?? 'redis://localhost:6379')
       },
       inject: [ConfigService],
     },
