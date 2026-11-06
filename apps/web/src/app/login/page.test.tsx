@@ -4,8 +4,10 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import LoginPage from './page'
 
-const { mockPush, mockSignInEmail, mockSignUpEmail } = vi.hoisted(() => ({
+const { mockPush, mockSignInEmail, mockSignUpEmail, mockVerifyTotp, mockVerifyBackupCode } = vi.hoisted(() => ({
   mockPush: vi.fn(),
+  mockVerifyTotp: vi.fn(),
+  mockVerifyBackupCode: vi.fn(),
   mockSignInEmail: vi.fn(),
   mockSignUpEmail: vi.fn(),
 }))
@@ -18,6 +20,7 @@ vi.mock('@/lib/auth-client', () => ({
   signIn: { email: mockSignInEmail },
   signUp: { email: mockSignUpEmail },
   requestPasswordReset: vi.fn(),
+  twoFactor: { verifyTotp: mockVerifyTotp, verifyBackupCode: mockVerifyBackupCode },
 }))
 
 vi.mock('sonner', () => ({
@@ -34,6 +37,8 @@ describe('LoginPage', () => {
     mockPush.mockClear()
     mockSignInEmail.mockReset()
     mockSignUpEmail.mockReset()
+    mockVerifyTotp.mockReset()
+    mockVerifyBackupCode.mockReset()
     visit('')
   })
 
@@ -98,6 +103,64 @@ describe('LoginPage', () => {
       await signIn()
       await waitFor(() => expect(mockSignInEmail).toHaveBeenCalled())
       expect(mockPush).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('with two-factor sign-in on', () => {
+    const passwordStep = async () => {
+      const user = userEvent.setup()
+      render(<LoginPage />)
+      await user.type(screen.getByLabelText('Email'), 'ada@example.com')
+      await user.type(screen.getByLabelText('Password'), 'Passw0rd1')
+      await user.click(screen.getByRole('button', { name: 'Sign in' }))
+      await screen.findByLabelText('Authenticator code')
+      return user
+    }
+
+    beforeEach(() => {
+      mockSignInEmail.mockResolvedValue({ data: { twoFactorRedirect: true, twoFactorMethods: ['totp'] }, error: null })
+    })
+
+    it('asks for a code after the password and does not sign in yet', async () => {
+      await passwordStep()
+      expect(screen.queryByLabelText('Password')).not.toBeInTheDocument()
+      expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('finishes the sign-in with the code and returns to the interrupted page', async () => {
+      visit('?redirectTo=%2Fsecurity')
+      mockVerifyTotp.mockResolvedValue({ error: null })
+      const user = await passwordStep()
+      await user.type(screen.getByLabelText('Authenticator code'), '123 456')
+      await user.click(screen.getByRole('button', { name: 'Verify' }))
+      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/security'))
+      expect(mockVerifyTotp).toHaveBeenCalledWith({ code: '123456' })
+    })
+
+    it('keeps the code on screen and explains a wrong code', async () => {
+      mockVerifyTotp.mockResolvedValue({ error: { status: 401, message: 'Invalid code' } })
+      const user = await passwordStep()
+      await user.type(screen.getByLabelText('Authenticator code'), '000000')
+      await user.click(screen.getByRole('button', { name: 'Verify' }))
+      expect(await screen.findByText(/not right/i)).toBeInTheDocument()
+      expect(screen.getByLabelText('Authenticator code')).toHaveValue('000000')
+      expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('accepts a backup code instead', async () => {
+      mockVerifyBackupCode.mockResolvedValue({ error: null })
+      const user = await passwordStep()
+      await user.click(screen.getByRole('button', { name: 'Use a backup code instead' }))
+      await user.type(screen.getByLabelText('Backup code'), 'abcde-fghij')
+      await user.click(screen.getByRole('button', { name: 'Verify' }))
+      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/'))
+      expect(mockVerifyBackupCode).toHaveBeenCalledWith({ code: 'abcde-fghij' })
+    })
+
+    it('goes back to the password step without leaving a typed password behind', async () => {
+      const user = await passwordStep()
+      await user.click(screen.getByRole('button', { name: 'Back to sign in' }))
+      expect(screen.getByLabelText('Password')).toHaveValue('')
     })
   })
 

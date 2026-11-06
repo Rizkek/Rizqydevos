@@ -5,10 +5,12 @@ import { PageHeader } from '@/components/shared/page-header'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { IntegrationCard } from '@/components/settings/integration-card'
+import { TwoFactorCard } from '@/components/settings/two-factor-card'
 import { useUIStore, type Theme, type AccentColor } from '@/stores/ui.store'
-import { Check, User, Keyboard, Paintbrush, Monitor, Moon, Sun, Link2, type LucideIcon } from 'lucide-react'
+import { Check, User, Keyboard, Paintbrush, Monitor, Moon, Sun, Link2, ShieldCheck, type LucideIcon } from 'lucide-react'
 import { useSession } from '@/lib/auth-client'
 import { useIntegrations } from '@/lib/integrations'
+import { isTwoFactorEnabled } from '@/lib/two-factor'
 
 const themes: { id: Theme; label: string; icon: LucideIcon }[] = [
   { id: 'dark', label: 'Dark', icon: Moon },
@@ -125,6 +127,18 @@ export default function SettingsPage() {
             )}
           </Card>
         </section>
+
+        {/* Two-factor sign-in */}
+        {session && (
+          <section className="flex flex-col gap-4">
+            <h2 className="text-[14px] font-semibold text-[var(--color-text)] flex items-center gap-2">
+              <ShieldCheck aria-hidden="true" size={16} className="text-[var(--color-text-muted)]" /> Two-factor sign-in
+            </h2>
+            <Card className="p-5">
+              <TwoFactorCard enabled={isTwoFactorEnabled(session.user)} />
+            </Card>
+          </section>
+        )}
 
         {/* Integrations */}
         <section className="flex flex-col gap-4">

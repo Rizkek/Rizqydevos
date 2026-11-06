@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { PasswordField, TextField } from '@/components/ui/text-field'
 import { AuthShell } from '@/components/auth/auth-shell'
+import { SecondFactorField } from '@/components/auth/second-factor-field'
 import { requestPasswordReset, signIn } from '@/lib/auth-client'
 import { safeRedirectPath } from '@/lib/auth-guard'
+import { needsSecondFactor, verifySecondFactor, type SecondFactorKind } from '@/lib/two-factor'
 
-type Mode = 'signin' | 'forgot'
-type Errors = Partial<Record<'email' | 'password' | 'form', string>>
+type Mode = 'signin' | 'forgot' | 'code'
+type Errors = Partial<Record<'email' | 'password' | 'code' | 'form', string>>
 
 // Registration is closed on purpose (single-user app); the owner account is created with `bun run --cwd apps/web create-owner`.
 export default function LoginPage() {
@@ -20,15 +22,20 @@ export default function LoginPage() {
   const [errors, setErrors] = React.useState<Errors>({})
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
+  const [codeKind, setCodeKind] = React.useState<SecondFactorKind>('totp')
+  const [code, setCode] = React.useState('')
 
   const emailRef = React.useRef<HTMLInputElement>(null)
   const passwordRef = React.useRef<HTMLInputElement>(null)
+  const codeRef = React.useRef<HTMLInputElement>(null)
 
   const switchMode = (next: Mode) => {
     setMode(next)
     setErrors({})
     setResetRequested(false)
     setPassword('')
+    setCode('')
+    setCodeKind('totp')
   }
 
   // Keeps what the user typed and moves focus to the first field that needs attention.
@@ -36,6 +43,7 @@ export default function LoginPage() {
     setErrors(found)
     if (found.email) emailRef.current?.focus()
     else if (found.password) passwordRef.current?.focus()
+    else if (found.code) codeRef.current?.focus()
   }
 
   const validate = (): Errors => {
@@ -50,7 +58,7 @@ export default function LoginPage() {
     event.preventDefault()
     if (loading) return
 
-    const found = validate()
+    const found = mode === 'code' ? {} : validate()
     if (Object.keys(found).length > 0) {
       fail(found)
       return
@@ -60,6 +68,16 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
+      if (mode === 'code') {
+        const problem = await verifySecondFactor(codeKind, code)
+        if (problem) {
+          fail({ code: problem })
+          return
+        }
+        router.push(safeRedirectPath(new URLSearchParams(window.location.search).get('redirectTo')))
+        return
+      }
+
       if (mode === 'forgot') {
         const { error } = await requestPasswordReset({ email: email.trim(), redirectTo: `${window.location.origin}/reset-password` })
         if (error) {
@@ -72,9 +90,15 @@ export default function LoginPage() {
 
       // The proxy sends unauthenticated visitors here with ?redirectTo=<original page>.
       const destination = safeRedirectPath(new URLSearchParams(window.location.search).get('redirectTo'))
-      const { error } = await signIn.email({ email: email.trim(), password })
+      const { data, error } = await signIn.email({ email: email.trim(), password })
       if (error) {
         fail({ form: error.message || 'Could not sign in. Check your email and password.' })
+        return
+      }
+      // Two-factor sign-in is on: the password was right, but there is no session until the code is checked.
+      if (needsSecondFactor(data)) {
+        setPassword('')
+        setMode('code')
         return
       }
       router.push(destination)
@@ -89,7 +113,7 @@ export default function LoginPage() {
     return (
       <AuthShell title="Reset link requested">
         <p role="status" className="text-[14px] text-[var(--color-text-2)]">
-          Email delivery is not set up yet. Check the server console for the reset link, then open it to choose a new password.
+          Email delivery is not set up. While developing, the reset link is printed in the terminal that runs the app. On a deployed app, run the reset-owner-password script instead (see the README).
         </p>
         <Button type="button" onClick={() => switchMode('signin')}>
           Back to sign in
@@ -99,6 +123,29 @@ export default function LoginPage() {
   }
 
   const isForgot = mode === 'forgot'
+
+  if (mode === 'code') {
+    return (
+      <AuthShell title="Two-factor sign-in" description="Enter a code to finish signing in.">
+        <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <SecondFactorField ref={codeRef} kind={codeKind} onKindChange={setCodeKind} value={code} onChange={setCode} error={errors.code} autoFocus />
+          {errors.form && (
+            <p role="alert" className="text-[13px] text-[var(--color-danger)]">
+              {errors.form}
+            </p>
+          )}
+          <Button type="submit" size="lg" aria-disabled={loading} className="w-full">
+            {loading ? 'Checking…' : 'Verify'}
+          </Button>
+        </form>
+        <p className="text-center text-[13px]">
+          <button type="button" onClick={() => switchMode('signin')} className="font-medium text-[var(--color-accent-text)] underline-offset-2 hover:underline">
+            Back to sign in
+          </button>
+        </p>
+      </AuthShell>
+    )
+  }
 
   return (
     <AuthShell

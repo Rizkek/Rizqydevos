@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth"
+import { twoFactor } from "better-auth/plugins"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { PrismaClient } from "@prisma/client"
 import { Pool } from "pg"
@@ -14,12 +15,18 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  // Authenticator-app codes (TOTP) plus one-time backup codes. There is no email provider, so the email OTP method is not configured.
+  plugins: [twoFactor({ issuer: "DevOS" })],
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
     maxPasswordLength: 128,
     sendResetPassword: async ({ user, url }) => {
-      console.log(`[Better Auth] Password reset link for ${user.email}: ${url}`)
+      // No email provider is set up. The link carries a token, so it is only printed while developing;
+      // in production, hosting logs would keep it. Use the reset-owner-password script there.
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[Better Auth] Password reset link for ${user.email}: ${url}`)
+      }
     },
   },
   session: {
