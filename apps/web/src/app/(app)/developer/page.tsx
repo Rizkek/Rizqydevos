@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { Activity, BookMarked, GitPullRequest, Lock } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { GithubPanel } from '@/components/developer/github-panel'
@@ -44,7 +45,7 @@ function ActivityTab() {
         <ul className="space-y-4">
           {events.map((event) => (
             <li key={event.id} className="flex gap-3 text-[13px] p-3 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors border border-transparent hover:border-[var(--color-border-subtle)]">
-              <img src={event.actor.avatarUrl} alt="" width={32} height={32} loading="lazy" className="w-8 h-8 rounded-full border border-[var(--color-border)]" />
+              <Image src={event.actor.avatarUrl} alt="" width={32} height={32} className="w-8 h-8 rounded-full border border-[var(--color-border)]" />
               <div>
                 <p className="text-[var(--color-text)]">
                   <span className="font-semibold">{event.actor.login}</span> {formatEventType(event.type ?? '')} <span className="font-medium">{event.repo.name}</span>

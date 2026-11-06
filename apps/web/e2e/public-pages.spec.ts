@@ -85,3 +85,26 @@ test('sign in: a failed submit moves focus to the first invalid field and announ
   await expect(page.getByRole('alert').filter({ hasText: 'Enter your password.' })).toBeVisible()
   await expect(page.getByLabel('Email')).toHaveAttribute('aria-invalid', 'true')
 })
+
+// The saved appearance must be on <html> before any bundle runs; otherwise light-theme users see a dark flash.
+// Blocking every file under /_next/static means only the inline script in <head> can have set the attributes.
+test.describe('theme before paint', () => {
+  test('sign in: a saved light theme and accent are applied without any JavaScript bundle', async ({ page }) => {
+    await setAppearance(page, 'light', 'emerald')
+    await page.route('**/_next/static/**', (route) => route.abort())
+    await page.goto('/login', { waitUntil: 'domcontentloaded' })
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+    await expect(page.locator('html')).toHaveAttribute('data-accent', 'emerald')
+  })
+
+  test.describe('system theme', () => {
+    test.use({ colorScheme: 'light' })
+
+    test('sign in: follows the browser colour scheme without any JavaScript bundle', async ({ page }) => {
+      await page.addInitScript(() => localStorage.setItem('devos-ui', JSON.stringify({ state: { theme: 'system', accentColor: 'violet' }, version: 0 })))
+      await page.route('**/_next/static/**', (route) => route.abort())
+      await page.goto('/login', { waitUntil: 'domcontentloaded' })
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+    })
+  })
+})

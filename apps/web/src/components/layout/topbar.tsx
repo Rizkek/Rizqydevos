@@ -69,6 +69,8 @@ export function Topbar() {
               className="w-8 h-8 rounded-full bg-[var(--color-surface-3)] flex items-center justify-center border border-[var(--color-border)] relative overflow-hidden"
             >
               {session?.user?.image ? (
+                // Any host can serve this avatar, and next/image only accepts hosts listed in next.config.ts.
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={session.user.image} alt="" width={32} height={32} className="w-full h-full object-cover" />
               ) : (
                 <User size={14} aria-hidden="true" className="text-[var(--color-text-2)]" />

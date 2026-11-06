@@ -3,19 +3,18 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from '@/components/providers'
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { THEME_SCRIPT } from '@/lib/theme-script'
 
 const geist = Geist({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
-  preload: false,
 })
 
 const geistMono = Geist_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
   display: 'swap',
-  preload: false,
 })
 
 export const metadata: Metadata = {
@@ -34,6 +33,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className={`${geist.variable} ${geistMono.variable} antialiased`}>
         <Providers>
           {children}

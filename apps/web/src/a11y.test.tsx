@@ -7,7 +7,7 @@ import { useCommandStore } from '@/stores/command.store'
 import { useMobileNavStore } from '@/stores/mobile-nav.store'
 import { ApiError } from '@/lib/api'
 import LoginPage from '@/app/login/page'
-import ResetPasswordPage from '@/app/reset-password/page'
+import { ResetPasswordForm } from '@/app/reset-password/reset-password-form'
 import SettingsPage from '@/app/(app)/settings/page'
 import { Sidebar } from '@/components/layout/sidebar'
 import { MobileNav } from '@/components/layout/mobile-nav'
@@ -23,13 +23,11 @@ import { TextField, PasswordField } from '@/components/ui/text-field'
 const mocks = vi.hoisted(() => ({
   fetchApi: vi.fn(),
   pathname: '/projects',
-  token: 'token' as string | null,
 }))
 
 vi.mock('next/navigation', () => ({
   usePathname: () => mocks.pathname,
   useRouter: () => ({ push: vi.fn() }),
-  useSearchParams: () => ({ get: (key: string) => (key === 'token' ? mocks.token : null) }),
 }))
 
 vi.mock('@/lib/auth-client', () => ({
@@ -55,7 +53,6 @@ beforeEach(() => {
   Element.prototype.scrollIntoView ??= () => {}
   mocks.fetchApi.mockReset()
   mocks.pathname = '/projects'
-  mocks.token = 'token'
 })
 
 afterEach(() => {
@@ -89,13 +86,12 @@ describe('accessibility (axe, WCAG 2.2 A/AA + best practice)', () => {
     })
 
     it('reset password', async () => {
-      render(<ResetPasswordPage />)
+      render(<ResetPasswordForm token="test-token" />)
       await expectNoA11yViolations()
     })
 
     it('reset password with an invalid link', async () => {
-      mocks.token = null
-      render(<ResetPasswordPage />)
+      render(<ResetPasswordForm token={null} />)
       await expectNoA11yViolations()
     })
   })
