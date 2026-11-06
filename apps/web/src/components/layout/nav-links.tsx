@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   FolderKanban,
+  Link2,
   Briefcase,
   BrainCircuit,
   TerminalSquare,
@@ -24,6 +25,7 @@ interface NavItem {
 export const mainNavItems: NavItem[] = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'Projects', path: '/projects', icon: FolderKanban },
+  { name: 'Links', path: '/links', icon: Link2 },
   { name: 'Workspace', path: '/workspace', icon: Briefcase },
   { name: 'Knowledge', path: '/knowledge', icon: BrainCircuit },
   { name: 'Developer', path: '/developer', icon: TerminalSquare },
