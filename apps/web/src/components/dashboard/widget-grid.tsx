@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { useWidgetStore, type WidgetConfig } from '@/stores/widget.store'
+import { DEFAULT_WIDGET_COUNT, useWidgetStore, type WidgetConfig } from '@/stores/widget.store'
 import dynamic from 'next/dynamic'
 import { EmptyState } from '@/components/shared/empty-state'
 import { LayoutDashboard } from 'lucide-react'
@@ -19,6 +19,7 @@ const WIDGET_REGISTRY: Record<string, React.ComponentType<{ config: WidgetConfig
   'server-health': dynamic(() => import('./widgets/server-health-widget').then((mod) => mod.ServerHealthWidget), { loading: () => <WidgetSkeleton /> }),
   'pomodoro': dynamic(() => import('./widgets/pomodoro-widget').then((mod) => mod.PomodoroWidget), { loading: () => <WidgetSkeleton /> }),
   'github': dynamic(() => import('./widgets/github-widget').then((mod) => mod.GithubWidget), { loading: () => <WidgetSkeleton /> }),
+  'attention': dynamic(() => import('./widgets/attention-widget').then((mod) => mod.AttentionWidget), { loading: () => <WidgetSkeleton /> }),
   'snippets': dynamic(() => import('./widgets/snippets-widget').then((mod) => mod.SnippetsWidget), { loading: () => <WidgetSkeleton /> }),
 }
 
@@ -41,7 +42,7 @@ export function WidgetGrid() {
   if (!mounted) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-[var(--widget-gap)] auto-rows-[minmax(300px,auto)]">
-        {Array.from({ length: 6 }).map((_, i) => (
+        {Array.from({ length: DEFAULT_WIDGET_COUNT }).map((_, i) => (
           <div key={i} className="h-[300px]">
             <Skeleton className="w-full h-full rounded-xl bg-[var(--color-surface-2)]" />
           </div>

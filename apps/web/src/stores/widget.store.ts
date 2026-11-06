@@ -23,7 +23,21 @@ const defaultWidgets: WidgetConfig[] = [
   { id: '4', type: 'github', enabled: true, order: 3 },
   { id: '5', type: 'pomodoro', enabled: true, order: 4 },
   { id: '6', type: 'snippets', enabled: true, order: 5 },
+  { id: '7', type: 'attention', enabled: true, order: 6 },
 ]
+
+// The dashboard shows this many skeletons before the saved layout is known, so the page does not change height.
+export const DEFAULT_WIDGET_COUNT = defaultWidgets.length
+
+// A layout saved in the browser predates widgets added later. Keep what the user arranged, drop types that
+// no longer exist, and append new default widgets so they show up without clearing site data.
+export function mergeWidgets(saved: WidgetConfig[] | undefined, defaults: WidgetConfig[] = defaultWidgets): WidgetConfig[] {
+  const known = new Set(defaults.map((widget) => widget.type))
+  const kept = (saved ?? []).filter((widget) => known.has(widget.type)).sort((a, b) => a.order - b.order)
+  const have = new Set(kept.map((widget) => widget.type))
+  const added = defaults.filter((widget) => !have.has(widget.type))
+  return [...kept, ...added].map((widget, index) => ({ ...widget, order: index }))
+}
 
 export const useWidgetStore = create<WidgetState>()(
   persist(
@@ -48,6 +62,12 @@ export const useWidgetStore = create<WidgetState>()(
         }),
       setWidgets: (widgets) => set({ widgets }),
     }),
-    { name: 'devos-widgets' }
+    {
+      name: 'devos-widgets',
+      merge: (persisted, current) => ({
+        ...current,
+        widgets: mergeWidgets((persisted as Partial<WidgetState> | undefined)?.widgets),
+      }),
+    }
   )
 )

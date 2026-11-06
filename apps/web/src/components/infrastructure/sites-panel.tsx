@@ -1,24 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
 import { Globe, RefreshCcw } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ListSkeleton } from '@/components/shared/list-skeleton'
-import { fetchApi } from '@/lib/api'
-import { createQueryOptions, queryKeys } from '@/lib/query'
+import { useSiteChecks } from './use-site-checks'
 import {
   describeHealth,
   describeSsl,
-  sitesFromProjects,
   type HealthResult,
-  type ProjectWithDeployUrl,
   type SslResult,
 } from '@/lib/sites'
 import { cn } from '@/lib/utils'
-
-const CHECK_INTERVAL_MS = 60_000
 
 function toneFor(health: HealthResult | undefined, ssl: SslResult | undefined, https: boolean): string {
   if (!health) return 'bg-[var(--color-surface-3)]'
@@ -29,25 +23,7 @@ function toneFor(health: HealthResult | undefined, ssl: SslResult | undefined, h
 
 // Uptime and SSL expiry for the deploy URLs entered in Projects.
 export function SitesPanel() {
-  const projects = useQuery(
-    createQueryOptions(queryKeys.projects, () => fetchApi<ProjectWithDeployUrl[]>('/projects'))
-  )
-  const sites = sitesFromProjects(projects.data ?? [])
-  const urls = sites.map((site) => site.url)
-  const hostnames = sites.filter((site) => site.https).map((site) => site.hostname)
-
-  const health = useQuery({
-    ...createQueryOptions(queryKeys.healthBatch(urls), () =>
-      fetchApi<HealthResult[]>(`/infrastructure/health/batch?urls=${encodeURIComponent(urls.join(','))}`)),
-    enabled: urls.length > 0,
-    refetchInterval: CHECK_INTERVAL_MS,
-  })
-  const ssl = useQuery({
-    ...createQueryOptions(queryKeys.sslBatch(hostnames), () =>
-      fetchApi<SslResult[]>(`/infrastructure/ssl/batch?hostnames=${encodeURIComponent(hostnames.join(','))}`)),
-    enabled: hostnames.length > 0,
-    refetchInterval: CHECK_INTERVAL_MS,
-  })
+  const { projects, sites, health, ssl } = useSiteChecks()
 
   const refresh = () => {
     void health.refetch()
