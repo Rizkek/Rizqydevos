@@ -21,9 +21,13 @@ function redirectToLogin() {
   window.location.assign(`${origin}/login?redirectTo=${encodeURIComponent(pathname + search)}`)
 }
 
+// Bad gateway, unavailable, gateway timeout: what the Next.js proxy answers while the API is asleep or down.
+const GATEWAY_STATUSES = new Set([502, 503, 504])
+
 export const fetchApi = async <T>(endpoint: string, options: RequestInit = {}): Promise<T> => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-  const url = `${baseUrl}/api/v1${endpoint}`
+  // Same origin on purpose: next.config.ts rewrites /api/v1/* to the API (API_URL), so the
+  // session cookie set by this app also reaches the API when both run on different domains.
+  const url = `/api/v1${endpoint}`
 
   const response = await fetch(url, {
     ...options,
@@ -37,7 +41,10 @@ export const fetchApi = async <T>(endpoint: string, options: RequestInit = {}): 
   if (!response.ok) {
     if (response.status === 401) redirectToLogin()
 
-    const errorData = await response.json().catch(() => ({}))
+    const errorData = await response.json().catch(() => null)
+    if (errorData === null && GATEWAY_STATUSES.has(response.status)) {
+      throw new ApiError(response.status, 'The DevOS API is starting or unreachable. Try again in a moment.', 'API_UNAVAILABLE')
+    }
     const error = errorData?.error
     const message = error?.message || errorData?.message || 'API request failed'
     const retryAfter = typeof error?.retryAfter === 'number' ? error.retryAfter : undefined

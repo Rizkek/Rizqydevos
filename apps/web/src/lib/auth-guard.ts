@@ -3,7 +3,8 @@ export function isPublicPath(pathname: string): boolean {
     return false
   }
 
-  const publicPrefixes = ['/login', '/register', '/reset-password', '/api/auth', '/_next', '/favicon.ico']
+  // /api/v1 is proxied to the API, which checks the session itself and answers 401 as JSON.
+  const publicPrefixes = ['/login', '/register', '/reset-password', '/api/auth', '/api/v1', '/_next', '/favicon.ico']
   if (publicPrefixes.some((prefix) => pathname.startsWith(prefix))) {
     return true
   }

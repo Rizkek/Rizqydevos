@@ -45,10 +45,30 @@ describe('fetchApi', () => {
   })
 
   it('falls back to a generic message when the error body is not JSON', async () => {
-    fetchMock.mockResolvedValue(new Response('<html>', { status: 502 }))
+    fetchMock.mockResolvedValue(new Response('<html>', { status: 500 }))
     const error = await fetchApi('/things').catch((e: unknown) => e)
-    expect(error).toMatchObject({ status: 502, message: 'API request failed' })
+    expect(error).toMatchObject({ status: 500, message: 'API request failed' })
     expect((error as ApiError).code).toBeUndefined()
+  })
+
+  it('calls the API through this origin, so the proxy can attach the session cookie', async () => {
+    fetchMock.mockResolvedValue(json({ success: true, data: null }))
+    await fetchApi('/projects?page=2')
+    expect(fetchMock.mock.calls[0]![0]).toBe('/api/v1/projects?page=2')
+  })
+
+  it.each([502, 503, 504])('reports a sleeping or unreachable API on a non-JSON %i from the proxy', async (status) => {
+    fetchMock.mockResolvedValue(new Response('<html>Bad Gateway</html>', { status }))
+    const error = await fetchApi('/things').catch((e: unknown) => e)
+    expect(error).toMatchObject({ status, code: 'API_UNAVAILABLE' })
+  })
+
+  it('keeps the API error code when a gateway status carries the API envelope', async () => {
+    fetchMock.mockResolvedValue(
+      json({ success: false, error: { code: 'UPSTREAM_UNAVAILABLE', message: 'GitHub is down' } }, { status: 502 }),
+    )
+    const error = await fetchApi('/things').catch((e: unknown) => e)
+    expect(error).toMatchObject({ status: 502, code: 'UPSTREAM_UNAVAILABLE' })
   })
 
   describe('401', () => {

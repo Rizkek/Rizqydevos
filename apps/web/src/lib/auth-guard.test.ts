@@ -44,7 +44,7 @@ describe('getRedirectUrl', () => {
 })
 
 describe('isPublicPath', () => {
-  it.each(['/login', '/reset-password', '/api/auth/get-session', '/_next/static/x.js', '/robots.txt'])('treats %s as public', (path) => {
+  it.each(['/login', '/reset-password', '/api/auth/get-session', '/_next/static/x.js', '/robots.txt', '/api/v1/projects'])('treats %s as public', (path) => {
     expect(isPublicPath(path)).toBe(true)
   })
 

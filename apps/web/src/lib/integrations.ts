@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { ApiError, fetchApi } from '@/lib/api'
-import { createQueryOptions, queryKeys } from '@/lib/query'
+import { createQueryOptions, queryKeys, shouldRetryQuery } from '@/lib/query'
 
 export type IntegrationProvider = 'github' | 'vercel'
 
@@ -98,6 +98,8 @@ export function describeIntegrationError(error: unknown, provider: IntegrationPr
         }
       case 'UPSTREAM_UNAVAILABLE':
         return { kind: 'unavailable', message: `${name} is not responding.`, action: 'retry' }
+      case 'API_UNAVAILABLE':
+        return { kind: 'unavailable', message: 'The DevOS API is starting. Try again in a moment.', action: 'retry' }
     }
     return { kind: 'unknown', message: error.message, action: 'retry' }
   }
@@ -120,7 +122,7 @@ const PERMANENT_CODES = new Set([
 
 export function shouldRetryIntegration(failureCount: number, error: unknown): boolean {
   if (error instanceof ApiError && (error.status === 401 || (error.code && PERMANENT_CODES.has(error.code)))) return false
-  return failureCount < 1
+  return shouldRetryQuery(failureCount, error)
 }
 
 function integrationQuery<T>(key: readonly unknown[], endpoint: string) {
