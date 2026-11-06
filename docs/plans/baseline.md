@@ -100,3 +100,22 @@ Skrip, kondisi, dan build produksi sama seperti bagian 2. Hanya halaman publik; 
 Penyebab perbaikan `/login` belum dipisahkan satu per satu: perubahan Fase 4 menghapus latar beranimasi (blur + mix-blend + animasi tak terbatas), `motion` dari halaman, dan spinner sekaligus. `/reset-password` masih dekat batas LCP 2.5 s di kondisi throttle ini; penyebabnya (font, hidrasi di balik `Suspense`) belum diselidiki, itu bahan Fase 5.
 
 Kesehatan build: web 307 test lulus (+26 test browser Playwright), API 105 test lulus, `bun audit` 50 → 38 temuan (kritis 4 → 0), lint web 62 → 33.
+
+## 6. Sesudah Fase E (2026-11-01)
+
+Skrip yang sama, build produksi (`bun run start -- -p 3100`), CPU 4x, 1,6 Mbps dengan RTT 150 ms, median dari 3 run. Pasangan sebelum dan sesudah diukur pada sesi yang sama; hanya halaman publik.
+
+| Halaman | Metrik | Sebelum Fase E | Sesudah |
+|---|---|---|---|
+| `/login` | FCP dan LCP | 820 ms | 696 ms |
+| `/login` | TBT | 352 ms | 355 ms |
+| `/login` | CLS | 0 | 0 |
+| `/login` | JS ditransfer | 183 KB | 183 KB |
+| `/reset-password` | FCP | 696 ms | 692 ms |
+| `/reset-password` | LCP | 2180 ms | 692 ms |
+| `/reset-password` | TBT | 444 ms | 394 ms |
+| `/reset-password` | CLS | 0 | 0 |
+
+Penyebab: `/reset-password` kini dirender di server (HTML pertama sudah memuat form, dicek dengan `curl` pada `/reset-password?token=x`), sehingga LCP tidak lagi menunggu hidrasi. Perbaikan `/login` tidak bisa dipisahkan antara preload font dan skrip tema, karena keduanya masuk dalam build yang sama. TBT `/login` tidak berubah.
+
+Belum diukur: halaman di balik login, dampak cache sesi pada latensi API (butuh database), dan data lapangan (Speed Insights).

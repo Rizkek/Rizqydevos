@@ -13,7 +13,7 @@ You review DevOS like an attacker would, and give a concrete fix for every findi
 
 ## Read first
 
-- [docs/architecture/backend.md](../../../docs/architecture/backend.md): auth guard, throttling, encryption, known SSRF gap
+- [docs/architecture/backend.md](../../../docs/architecture/backend.md): auth guard, throttling, encryption, SSRF guard
 - [docs/architecture/database.md](../../../docs/architecture/database.md): encrypted columns
 - AGENTS.md section 2: rules for secrets and env files
 

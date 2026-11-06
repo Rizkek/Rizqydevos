@@ -14,7 +14,8 @@ Plan: [docs/plans/ROADMAP.md](../plans/ROADMAP.md). Reference ADRs for the reaso
 ```
                          Browser (one user)
                     │                        │
-       pages, /api/auth/*           fetchApi → /api/v1/*  (credentials: include)
+       pages, /api/auth/*           /api/v1/* sent to the web origin and
+                                    rewritten by next.config.ts to API_URL
                     ▼                        ▼
 ┌──────────────────────────────┐   ┌──────────────────────────────────────┐
 │ apps/web — Next.js 16        │   │ apps/api — NestJS 11                  │
@@ -63,12 +64,13 @@ variables.
 | Module | Routes (`/api/v1/...`) | Purpose |
 |---|---|---|
 | projects | `projects` | Project registry: repo URL, deploy URL, stack, status |
-| workspace | `workspace/todos`, `workspace/notes`, `workspace/bookmarks` | Tasks, notes, scratchpad; bookmarks back the planned Links page |
+| workspace | `workspace/todos`, `workspace/notes`, `workspace/bookmarks` | Tasks, notes, scratchpad; bookmarks back the Links page |
 | knowledge | `knowledge/snippets`, `knowledge/notes` | Snippets and notes |
 | ai | `ai/prompts` | Prompt library, shown as the Prompts tab in Knowledge |
 | integrations | `integrations`, `integrations/github/*`, `integrations/vercel/*` | GitHub and Vercel tokens and data |
-| infrastructure | `infrastructure/ssl*`, `infrastructure/health*` | Uptime and SSL checks |
+| infrastructure | `infrastructure/ssl*`, `infrastructure/health*` | Uptime and SSL checks; targets are checked against private address ranges at connect time |
 | audit | `audit-log` | Read-only audit trail |
+| checklist | `checklist` | Per-project security chores with due dates and repeat intervals |
 | secrets | `secrets` | Encrypted secret vault |
 | settings | `settings` | User settings |
 | (root) | `health`, `health/liveness`, `health/readiness` | Platform probes (public, not throttled) |
@@ -91,8 +93,8 @@ Rizqydevos/
 ├── prisma/                   ← schema.prisma and migrations (shared by web and api)
 ├── docs/
 ├── docker-compose.dev.yml    ← Local Postgres and Redis
-├── docker-compose.yml        ← References Dockerfiles that do not exist yet (Fase P)
-├── render.yaml               ← API service only (Fase P)
+├── render.yaml               ← API on Render
+├── apps/web/vercel.json      ← Web on Vercel (install and build from the root)
 ├── .env.example              ← Which variable each program reads
 └── package.json              ← Bun workspaces + Turborepo
 ```
@@ -132,15 +134,15 @@ session expired.
 Web:   src/proxy.ts redirects unauthenticated page requests to /login (safe redirectTo)
        Better Auth: registration limited to OWNER_EMAIL
 API:   ThrottlerGuard (100/min per IP, 10/min for connecting an integration)
-       AuthGuard (global, @Public() for health only)
+       AuthGuard (global, @Public() for health only; verified sessions cached 30 s)
        ValidationPipe, helmet, CORS limited to APP_URL
 Data:  AES-256-GCM for secret values and integration tokens (ENCRYPTION_KEY, exactly 32 bytes)
-       Audit log for connect/disconnect, secret create/reveal/delete
+       Audit log for connect/disconnect, secret create/reveal/delete/export/import
 ```
 
-Known gaps are tracked in [ROADMAP.md](../plans/ROADMAP.md): SSRF hardening of the uptime check (Fase F),
-2FA before the vault holds real passwords (Fase C), and the session cookie reaching the API across
-domains in production (Fase P).
+Outgoing uptime and SSL checks refuse private, loopback, link-local, and reserved addresses, also when a public name resolves to one and when a redirect points to one (`host-guard.ts`). Known gaps are tracked in [ROADMAP.md](../plans/ROADMAP.md): 2FA before the vault holds real passwords (Fase C), and the checks that need a live deployment (Fase H). In production the browser reaches the API only
+through the `/api/v1` rewrite on the web app, so the session cookie always travels with API calls
+([ADR-006](./adr/ADR-006-vercel-render-deployment.md)).
 
 ---
 
@@ -148,11 +150,11 @@ domains in production (Fase P).
 
 | Concern | Development | Production |
 |---------|------------|-----------|
-| Web | `bun run dev` (turbo, port 3000) | Vercel (planned, Fase P) |
-| API | `bun run dev` (turbo, port 3001) | Render (planned; `render.yaml` exists, Fase P) |
+| Web | `bun run dev` (turbo, port 3000) | Vercel (`apps/web/vercel.json`) |
+| API | `bun run dev` (turbo, port 3001) | Render (`render.yaml`), reached only through the web app proxy |
 | Database | Supabase, or Postgres from `docker-compose.dev.yml` | Supabase |
 | Redis | Hosted Redis, or `docker-compose.dev.yml` | Hosted Redis |
-| Migrations | `prisma migrate dev` (owner approves) | `prisma migrate deploy`, step not wired yet (Fase P) |
+| Migrations | `prisma migrate dev` (owner approves) | `prisma migrate deploy`, run by the owner ([../deployment.md](../deployment.md)) |
 | Secrets | `apps/api/.env`, `apps/web/.env`, root `.env` (see `.env.example`) | Platform environment variables |
 
 ---

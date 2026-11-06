@@ -1,11 +1,11 @@
 # AGENTS.md — DevOS (Rizqydevos)
 
 Aturan kerja untuk agent AI di repo ini. Bahasa komunikasi: Indonesia. Kode, nama identifier, dan pesan commit: Inggris.
-Terakhir diverifikasi terhadap kode: 2026-10-30. Item bertanda **[verifikasi]** belum dikonfirmasi lewat eksekusi atau pengukuran dan tidak boleh dilaporkan sebagai fakta.
+Terakhir diverifikasi terhadap kode: 2026-11-01. Item bertanda **[verifikasi]** belum dikonfirmasi lewat eksekusi atau pengukuran dan tidak boleh dilaporkan sebagai fakta.
 
 ## 0. Arah proyek (revisi 2026-10-14, status 2026-10-30)
 
-DevOS adalah ruang pribadi satu developer: link, pengetahuan, prompt, password yang takut hilang, daftar proyek, status GitHub dan Vercel, dan daftar periksa keamanan. Satu pengguna, biaya nol, tanpa pendaftaran publik. Per 2026-10-30 (Fase A): modul Docker, Analytics, dan Automation **sudah dibuang**; AI dilebur ke Knowledge (tab Prompts, `/ai` dialihkan); Monitoring dilebur ke Infrastructure (API `/infrastructure/*`, audit log di `/audit-log`). Links dan brankas password dikembangkan berikutnya.
+DevOS adalah ruang pribadi satu developer: link, pengetahuan, prompt, password yang takut hilang, daftar proyek, status GitHub dan Vercel, dan daftar periksa keamanan. Satu pengguna, biaya nol, tanpa pendaftaran publik. Per 2026-10-30 (Fase A): modul Docker, Analytics, dan Automation **sudah dibuang**; AI dilebur ke Knowledge (tab Prompts, `/ai` dialihkan); Monitoring dilebur ke Infrastructure (API `/infrastructure/*`, audit log di `/audit-log`). Per 2026-11-01: Links sudah ada (Fase B); brankas punya sign-in ulang, cadangan terenkripsi, rotasi kunci, 2FA TOTP, model data v2 (username, url, tags), dan impor CSV (Fase C); migrasinya (`add_two_factor`, `secret_v2`) belum dijalankan dan menunggu persetujuan pemilik. Konfigurasi deploy Vercel + Render siap (Fase P). Per 2026-11-01 juga: daftar periksa keamanan per proyek (Fase D, migrasinya belum dijalankan), penjaga SSRF, cache sesi, skrip reset password, dan CI (Fase F), tema sebelum paint dan pengukuran ulang (Fase E).
 
 Sebelum mengerjakan apa pun, baca berurutan: `docs/plans/HANDOFF.md` (keadaan terakhir dan jebakan), `docs/plans/ROADMAP.md` (fase S, A sampai H, dan P), `docs/product/overview.md` (lingkup, modul, alur bisnis). Bila bagian lain dokumen ini bertentangan dengan arah ini (misalnya menyebut modul yang akan dibuang), arah ini yang berlaku. Jangan memperbaiki, menambah test, atau mengoptimalkan modul yang dijadwalkan dibuang kecuali diminta. Pemilik membuat commit dan push sendiri; agen memberikan perintah `git add` dan `git commit` siap pakai di chat (satu baris per perintah, tanpa Co-Authored-By).
 
@@ -21,9 +21,9 @@ DevOS adalah command center pribadi untuk developer. Monorepo Bun + Turborepo.
 | Data | PostgreSQL via Prisma 7.9 (`@prisma/adapter-pg`), skema di `prisma/schema.prisma`, migrasi `prisma/migrations` |
 | Shared | `packages/types` (`@devos/types`) |
 | Test | Vitest (api dan web), Testing Library + jsdom (web) |
-| Deploy | `render.yaml` (API), `docker-compose*.yml`, health check `/api/v1/health` |
+| Deploy | Web di Vercel (`apps/web/vercel.json`), API di Render (`render.yaml`); browser memanggil `/api/v1` di domain web yang di-rewrite ke `API_URL` (ADR-006, `docs/deployment.md`). `docker-compose.dev.yml` hanya untuk Postgres dan Redis lokal |
 
-Peta modul API: `projects`, `workspace` (todo, notes, bookmarks), `knowledge` (notes, snippets), `ai` (prompts, ditampilkan sebagai tab Prompts di Knowledge), `integrations` (github, vercel), `infrastructure` (ssl, health; dulu `monitoring`), `audit` (`GET /audit-log`), `secrets`, `settings`. Semua route dilindungi `AuthGuard` global kecuali `@Public()`. Peta lengkap: `docs/architecture/overview.md`.
+Peta modul API: `projects`, `workspace` (todo, notes, bookmarks), `knowledge` (notes, snippets), `ai` (prompts, ditampilkan sebagai tab Prompts di Knowledge), `integrations` (github, vercel), `infrastructure` (ssl, health; dulu `monitoring`), `audit` (`GET /audit-log`), `secrets`, `checklist`, `settings`. Semua route dilindungi `AuthGuard` global kecuali `@Public()`. Peta lengkap: `docs/architecture/overview.md`.
 
 Perintah (jalankan dari root):
 
@@ -108,7 +108,7 @@ Bila permintaan pengguna cocok dengan salah satu jenis di bawah, agent mengikuti
 
 Tambahan khusus repo:
 
-* Jenis 8 dan 13: lihat bagian 6 (integrasi) dan `render.yaml`, `docker-compose.yml`. Variabel env yang wajib ada di `apps/api/src/config/env.validation.ts`; jangan menebak nama.
+* Jenis 8 dan 13: lihat bagian 6 (integrasi), `render.yaml`, `apps/web/vercel.json`, dan `docs/deployment.md`. Variabel env yang wajib ada di `apps/api/src/config/env.validation.ts`; jangan menebak nama.
 * Jenis 9: selalu ukur di build produksi (`bun run build` lalu `bun run --cwd apps/web start`), bukan `next dev`.
 * Jenis 12: gunakan skill `devos-reviewer` dan `devos-security`.
 
@@ -171,7 +171,7 @@ Auth dan kontrol mati (Fase 3), status per 2026-10-14:
 * **Selesai: `redirectTo`.** Login membaca `?redirectTo=` lewat `safeRedirectPath` (`lib/auth-guard.ts`), yang hanya menerima path internal dan menolak `//host`, `/\host`, URL absolut, karakter kontrol, dan `/login`. Proxy sebelumnya menggandakan query string (`/p?x=1` menjadi `redirectTo=/p?x=1?x=1`); `getRedirectUrl` kini menerima path lengkap dan tidak menambah lagi. Terverifikasi pada server produksi.
 * **Selesai: pendaftaran ditutup (2026-10-14).** DevOS satu pengguna dan pendaftaran publik adalah non-goal (`docs/product/overview.md`); semua pengguna yang login bisa mengakses modul Docker dan secrets. Hanya `OWNER_EMAIL` yang bisa membuat akun, dipaksa di better-auth lewat `databaseHooks.user.create.before` (`lib/signup-policy.ts`) sehingga berlaku untuk semua jalur pembuatan user. Tanpa `OWNER_EMAIL` tidak ada yang bisa mendaftar (gagal tertutup). UI login tidak lagi punya mode daftar. Akun pemilik dibuat dengan `OWNER_EMAIL=... OWNER_PASSWORD=... bun run --cwd apps/web create-owner`, dijalankan sendiri oleh pemilik; agent tidak menjalankannya dan tidak membaca nilainya. Jangan menambah social login atau plugin yang membuat user tanpa melewati hook ini.
 * **Selesai: kontrol mati dihapus.** Tombol notifikasi dan menu pengguna di Topbar (avatar kini gambar ber-nama, bukan tombol), grup "Quick Actions" di command palette (hanya `console.log`), pintasan "⌘B / G lalu D / G lalu W" di Settings (tidak ada implementasinya), dan tombol "Edit Profile". Profil di Settings memakai data sesi (sebelumnya "Rizqy" dan "dev@rizqy.me" ditulis keras).
-* **Belum, sengaja:** reset password tetap hanya `console.log` tautan di server (tidak ada pengiriman email); pesannya sudah jujur ("Check the server console"). Jangan menyebut fitur ini berfungsi di produksi sebelum ada penyedia email. Teks login disederhanakan, tetapi gaya visual login (gradient, blur, animasi tak terbatas, ikon dekoratif) belum disentuh: itu Fase 4 dan 5.
+* **Reset password tanpa email (2026-11-01):** di pengembangan tautan reset dicetak ke log web; di produksi tidak dicetak (`lib/auth.ts` memeriksa `NODE_ENV`), dan pemilik menjalankan `bun run --cwd apps/web reset-owner-password` dengan `OWNER_EMAIL` dan `NEW_PASSWORD`. Jangan menyebut tombol Forgot password? berfungsi di produksi sebelum ada penyedia email. Teks login disederhanakan, tetapi gaya visual login (gradient, blur, animasi tak terbatas, ikon dekoratif) belum disentuh: itu Fase 4 dan 5.
 
 ## 7. Aksesibilitas (WCAG 2.2 AA) dan Core Web Vitals
 
@@ -228,18 +228,18 @@ Temuan:
 
 | Area | Temuan | Status |
 |---|---|---|
-| Font | `next/font/google` dengan `preload: false` pada Geist dan Geist Mono dapat menunda render teks | **[verifikasi]** ukur LCP dan CLS dengan preload nyala |
-| Tema | `<html data-theme="dark">` ditulis keras, tema sebenarnya diterapkan di `useEffect` (`providers.tsx`) sesudah hidrasi. Pengguna tema terang melihat kilat gelap | Terkonfirmasi dari kode |
-| Tata letak | `WidgetGrid` merender 6 skeleton, lalu jumlah widget aktif setelah mount dari store persist; jumlah bisa berbeda, berisiko CLS | Terkonfirmasi dari kode; ukur CLS |
-| Latensi sesi | `proxy.ts` melakukan fetch ke `/api/auth/get-session` pada setiap navigasi halaman terproteksi; `AuthGuard` API melakukan HTTP ke Next pada setiap request API tanpa cache. better-auth `session.cookieCache` tidak dikonfigurasi | Terkonfirmasi dari kode; besar dampak **[verifikasi]** |
+| Font | Preload dinyalakan (2026-11-01) | Pengaruh terpisah pada LCP tidak terukur; lihat `docs/plans/baseline.md` bagian 6 |
+| Tema | Skrip inline di `<head>` (`lib/theme-script.ts`) menulis `data-theme` dan `data-accent` dari localStorage sebelum paint; efek di `providers.tsx` hanya menjaga sinkron | Selesai, ada test unit dan test browser |
+| Tata letak | `WidgetGrid` merender `DEFAULT_WIDGET_COUNT` skeleton sebelum store terbaca | Selesai; CLS 0 di halaman publik, dashboard belum diukur |
+| Latensi sesi | `proxy.ts` melakukan fetch ke `/api/auth/get-session` pada setiap navigasi halaman terproteksi. `AuthGuard` API menyimpan sesi terverifikasi 30 detik. better-auth `session.cookieCache` sengaja tidak dinyalakan | Dampak di deploy **[verifikasi]** (ROADMAP Fase H) |
 | Air terjun data | Semua halaman `(app)` kecuali dashboard/analytics/automation adalah Client Component yang memuat data setelah JS dan hidrasi | Terkonfirmasi dari kode |
 | Animasi | Lebar sidebar dianimasikan via `motion` (memicu layout tiap frame). Latar login: dua blob `blur-[140px]` + `mix-blend-screen` beranimasi tak terbatas + overlay `noise.svg` | Terkonfirmasi dari kode; dampak **[verifikasi]** |
-| Gambar | `<img>` mentah tanpa dimensi di Topbar dan Developer | Terkonfirmasi dari kode |
+| Gambar | Avatar GitHub di Developer memakai `next/image`; avatar Topbar tetap `<img>` (host bebas) | Selesai kecuali Topbar |
 | Viewport | `h-screen` (100vh) pada layout aplikasi; gunakan `h-dvh` | Terkonfirmasi dari kode |
 | Build | `next build --webpack` dipaksa, alasan tidak terdokumentasi | **[verifikasi]** apakah masih perlu |
 | Dashboard | Grafik "kontribusi" di widget GitHub memakai `Math.random()` setiap render | Terkonfirmasi dari kode |
 
-Urutan kerja yang disarankan untuk sesi performa: ukur baseline → tema sebelum paint → font preload → cache sesi → gambar → animasi sidebar/login → ukur ulang.
+Sisa pekerjaan performa: animasi lebar sidebar, evaluasi `--webpack`, dan data lapangan. Urutan yang dipakai di Fase E: ukur baseline → tema sebelum paint → font preload → cache sesi → gambar → skeleton → ukur ulang.
 
 ## 8. Backend
 
@@ -249,9 +249,9 @@ Urutan kerja yang disarankan untuk sesi performa: ukur baseline → tema sebelum
 * `enableImplicitConversion` aktif: string `"false"` pada properti boolean diubah menjadi `true` sebelum validasi. Untuk DTO boolean pakai `@Transform(({ obj }) => obj.field)` agar nilai mentah yang divalidasi (contoh: `UpdateIntegrationDto`). Permintaan "nonaktifkan" bisa berakhir "aktifkan" bila ini terlewat.
 * `ThrottlerGuard` global aktif (`app.module.ts`, dipasang sebelum `AuthGuard` agar banjir request tak terautentikasi ditolak sebelum panggilan HTTP ke Next): 100 request/menit per IP, `POST /integrations/:provider` 10/menit, `/health` dikecualikan (`@SkipThrottle`). Galat 429 berkode `RATE_LIMITED` dengan header `Retry-After`. IP klien bergantung pada `TRUST_PROXY_HOPS` (0 bila API terbuka langsung seperti docker-compose; 1 di `render.yaml` **[verifikasi jumlah hop di Render]**). Nilai terlalu kecil di belakang proxy membuat semua pengguna berbagi satu jatah; nilai terlalu besar membuat header `X-Forwarded-For` palsu bisa menghindari batas. Penyimpanan counter di memori proses: tidak dibagi antar instance. Teruji di `shared/throttling.http.spec.ts`.
 * Operasi multi-langkah memakai transaksi. Endpoint daftar memakai `PaginationQueryDto`.
-* Permintaan keluar ke URL buatan pengguna (`infrastructure`, yang memeriksa `Project.deployUrl`) harus melewati validasi host. Filter saat ini berbasis regex nama host dan tidak menangani resolusi DNS ke IP privat atau pengalihan; anggap itu celah SSRF yang belum tertutup **[verifikasi]** sebelum memperluas.
+* Permintaan keluar ke URL buatan pengguna (`infrastructure`, yang memeriksa `Project.deployUrl`) harus melewati validasi host. `host-guard.ts` memeriksa alamat di fungsi `lookup` saat koneksi dibuka, mengikuti redirect manual per lompatan (maksimal 3), dan menolak rentang privat, loopback, link-local, dan bentuk IPv6 yang membungkus IPv4. Teruji dengan lookup tersuntik; perilaku terhadap DNS sungguhan di Render **[verifikasi]**. Semua pemeriksaan keluar yang baru harus lewat penjaga yang sama.
 * Perubahan skema: ubah `prisma/schema.prisma`, buat migrasi, jangan edit migrasi yang sudah ada. Persetujuan pengguna wajib sebelum menjalankan migrasi.
-* Env baru: tambahkan ke `env.validation.ts` (Zod), `.env.example` (placeholder), `render.yaml`/`docker-compose.yml` bila relevan, dan `turbo.json` `globalEnv` bila memengaruhi build.
+* Env baru: tambahkan ke `env.validation.ts` (Zod), `.env.example` (placeholder), `render.yaml` dan dashboard Vercel bila relevan, dan `turbo.json` `globalEnv` bila memengaruhi build.
 
 ## 9. Hutang teknis yang diketahui
 

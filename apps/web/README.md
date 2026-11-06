@@ -9,7 +9,7 @@ bun run dev            # from this folder, http://localhost:3000
 # or from the root: bun run dev (web and api together)
 ```
 
-The API must run on `NEXT_PUBLIC_API_URL` (default `http://localhost:3001`).
+The API must run on `API_URL` (default `http://localhost:3001`). The browser calls `/api/v1` on this app, which rewrites the request to the API (`next.config.ts`).
 
 ## Environment (`apps/web/.env`)
 
@@ -18,8 +18,8 @@ The API must run on `NEXT_PUBLIC_API_URL` (default `http://localhost:3001`).
 | `DATABASE_URL` | Postgres for Better Auth tables (same database as the API) |
 | `BETTER_AUTH_URL` | Origin of this app, for example `http://localhost:3000` |
 | `BETTER_AUTH_SECRET` | Signs sessions; at least 32 characters |
-| `NEXT_PUBLIC_API_URL` | API origin; inlined at build time, rebuild after changing it |
-| `OWNER_EMAIL` | Only needed when running `create-owner` |
+| `API_URL` | API origin for the `/api/v1` rewrite; read at build time, rebuild after changing it |
+| `OWNER_EMAIL` | Only needed when running `create-owner` or `reset-owner-password` |
 
 ## Scripts
 
@@ -31,8 +31,10 @@ The API must run on `NEXT_PUBLIC_API_URL` (default `http://localhost:3001`).
 | `bun run lint` | ESLint (lint errors block) |
 | `bun run type-check` | TypeScript |
 | `bun run test` | Vitest: components, hooks, axe, contrast |
-| `bun run test:e2e` | Playwright with system Chrome on the public pages (run `build` first) |
+| `bun run test:e2e` | Playwright with system Chrome (run `build` first). Public pages always; pages behind sign-in only when `E2E_EMAIL` and `E2E_PASSWORD` are set and the API is running |
 | `bun run create-owner` | Create the single owner account; needs `OWNER_EMAIL` and `OWNER_PASSWORD` |
+| `bun run disable-owner-two-factor` | Turn off two-factor sign-in and sign out every device when the authenticator and backup codes are lost; needs `OWNER_EMAIL` |
+| `bun run reset-owner-password` | Set a new owner password and sign out every device; needs `OWNER_EMAIL` and `NEW_PASSWORD` (8 to 128 characters) |
 
 ## Structure
 

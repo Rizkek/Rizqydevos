@@ -10,7 +10,6 @@ build/
 coverage/
 .DS_Store
 *.tsbuildinfo
-docs/
 .agents
 
 .env.example

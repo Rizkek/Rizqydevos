@@ -10,7 +10,7 @@ Revisi 2026-10-30 (hasil review ulang codebase): ditambah **Fase S** (stabilisas
 |---|---|---|
 | Phase 0-5 produk (Juli 2026) | dulu `docs/vision/04-goals.md` (dihapus 2026-11-01) | Usang. Docker, terminal, AI chat, dan Automation dibatalkan; lingkup kini di `docs/product/overview.md` |
 | Fase 0-7 perbaikan hasil audit | HANDOFF.md bagian 4 | Fase 0-4 selesai (baseline, backend dan frontend integrasi, auth dan kontrol mati, aksesibilitas, throttler, pendaftaran ditutup, patch Next), sudah di commit `5295ea4`. Fase 5-7 dipindah ke E, F, H |
-| Fase S, A-H, P (dokumen ini) | di bawah | Belum ada yang dimulai per 2026-10-30 |
+| Fase S, A-H, P (dokumen ini) | di bawah | S, A, P, B, D, E, F dikerjakan; C sebagian; G belum; H menunggu. Status tiap fase ada di bagian fase itu |
 
 ## Tujuan proyek (hasil brainstorm)
 
@@ -69,7 +69,7 @@ Dikerjakan pertama. Tanpa ini API tidak bisa start, `bun run lint` dan `bun run 
 8. `apps/api` punya script `lint` (ESLint 10) tanpa konfigurasi, sehingga `bun run lint` selalu gagal. Tambah `eslint.config.mjs` minimal memakai `@typescript-eslint/*` yang sudah terpasang (dari Fase F butir 1; bila butuh paket `typescript-eslint`, minta persetujuan). Catat jumlah masalah awal di `baseline.md`; jangan mewajibkan nol.
 
 **Bug kecil tanpa migrasi:**
-9. Secret yang dihapus memblokir pembuatan ulang: `remove` hanya mengisi `deletedAt`, sedangkan `@@unique([userId, key])` tetap berlaku (hapus `GITHUB_TOKEN` lalu buat lagi menghasilkan 409). Ciphertext juga tersimpan selamanya. Usulan: hapus permanen baris secret (audit log tetap mencatat), dengan regression test yang gagal sebelum dan lulus sesudah. Alternatif dengan migrasi ada di Fase C butir 4. **Keputusan pemilik:** hapus permanen atau tunggu Fase C.
+9. **Selesai 2026-11-01 (tanpa migrasi).** Secret yang dihapus memblokir pembuatan ulang karena `@@unique([userId, key])` ikut menghitung baris yang sudah dihapus. Perbaikan: `create` memakai ulang baris terhapus dengan key yang sama, dan `remove` mengosongkan nilai terenkripsi. Teruji di `secret.service.spec.ts`. Dipilih agen, belum ditinjau pemilik: soft delete dipertahankan (bukan hapus permanen) agar jejak audit utuh; nilai terenkripsinya tetap dihapus.
 
 **Dokumen dan git:**
 10. `docs/` ada di `.gitignore`, sehingga `docs/plans/` dan dokumen baru 2026-11-01 (`docs/product/overview.md`, `docs/design/design-system.md`) tidak terlacak kecuali ditambahkan dengan `git add -f`, padahal README dan AGENTS.md merujuknya. **Keputusan pemilik:** hapus `docs/` dari `.gitignore` atau `git add -f` file tertentu.
@@ -111,6 +111,8 @@ Selesai bila: tidak ada kode Docker, nav 8 item, semua test hijau, `bun audit` t
 
 Dikerjakan setelah A (agar modul Docker tidak ikut ter-deploy) dan sebelum password asli dimasukkan di Fase C. Agen menyiapkan konfigurasi dan langkah; **agen tidak men-deploy**, dan migrasi database butuh persetujuan.
 
+**Status 2026-11-01: konfigurasi selesai, belum di-deploy.** Web di Vercel, API di Render, `/api/v1/*` di-rewrite oleh Next ke `API_URL` (ADR-006). Dikerjakan: rewrite di `next.config.ts`; `fetchApi` memanggil origin sendiri; `proxy.ts` melewati `/api/v1`; galat 502/503/504 tanpa JSON menjadi `API_UNAVAILABLE` dengan retry bertahap (5 kali, sekitar 30 detik); `render.yaml` ditulis ulang (build dari root dengan Bun, health check liveness, build filter); `apps/web/vercel.json`; `docker-compose.yml` produksi dihapus; `turbo.json` memakai `API_URL`; panduan `docs/deployment.md`. Yang tersisa untuk pemilik: deploy, isi env di dashboard, `prisma migrate deploy`, uji asap. Yang perlu diverifikasi saat deploy: rewrite Vercel meneruskan cookie dan `X-Forwarded-For`, batas waktu proxy Vercel saat Render bangun, Bun tersedia di build Render (`npm install -g bun`) dan Vercel, pooler Supabase untuk Vercel.
+
 Masalah yang ditemukan:
 - **Cookie sesi tidak sampai ke API bila domain berbeda.** Cookie dibuat Next di domain web; API (`AuthGuard`) membacanya dari request browser (`fetchApi` memakai `credentials: 'include'`). Tidak ada `rewrites` di `next.config.ts` dan tidak ada `crossSubDomainCookies` di `lib/auth.ts`. Di lokal berjalan karena cookie berlaku per host, bukan per port. Dengan web di `*.vercel.app` dan API di `*.onrender.com` (keduanya di Public Suffix List) setiap panggilan API akan 401.
 - `render.yaml` hanya berisi API; tidak ada definisi web Next, padahal web butuh `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_API_URL`.
@@ -137,6 +139,8 @@ Selesai bila: login dan satu panggilan API terautentikasi berhasil di URL produk
 
 ### Fase B: Links (S)
 
+**Status 2026-11-01: selesai kecuali uji dengan file bookmark nyata.** Halaman `/links` (daftar, cari, filter tag, tambah dan ubah, pin, hapus, baca nanti sebagai tag `read-later`), impor file HTML dari Chrome, Edge, Firefox, dan Safari dengan pratinjau dan deduplikasi, ekspor HTML dan JSON, pengecekan link manual, `/links/add` dan bookmarklet. API: `GET /workspace/bookmarks/all`, `POST /workspace/bookmarks/import`, validasi URL http dan https saja, batas panjang, batas 2000 item per impor. Test: `bookmarks.service.spec.ts`, `lib/bookmarks.test.ts`, `links-library.test.tsx` (termasuk axe). Penguraian file memakai contoh ekspor Chrome yang ditulis tangan; **belum dicoba dengan file ekspor dari browser Anda sendiri**.
+
 Fitur yang paling Anda inginkan, dan yang saat ini hanya punya backend (tombol "Bookmarks" dan "Reading List" di Knowledge tidak berfungsi).
 
 1. Halaman `/links`: daftar, tambah, ubah, hapus, pin, tag, pencarian, filter tag. Keadaan loading, kosong, dan galat.
@@ -149,6 +153,8 @@ Fitur yang paling Anda inginkan, dan yang saat ini hanya punya backend (tombol "
 Selesai bila: impor bookmark nyata dari Chrome berhasil, dan test mencakup impor, deduplikasi, dan batas input.
 
 ### Fase C: Brankas password dan secret (B)
+
+**Status 2026-11-01: kode selesai, migrasi belum dijalankan.** Tahap pertama (tanpa migrasi): verifikasi sign-in dalam 15 menit untuk reveal, ekspor, dan pemulihan (`REAUTH_REQUIRED` dan dialog kata sandi di web), nilai tersembunyi otomatis setelah 30 detik dan clipboard dikosongkan setelah 30 detik, batas laju khusus (reveal 20 per menit, cadangan dan pemulihan 5 per menit), batas panjang input, cadangan terenkripsi dengan passphrase (scrypt + AES-256-GCM) dan pemulihan dalam satu transaksi, audit `EXPORT_SECRETS` dan `IMPORT_SECRETS`, skrip rotasi `ENCRYPTION_KEY` (`DRY_RUN=1` tersedia). Tahap kedua (butuh migrasi, ditulis offline dan belum dijalankan): butir 1 selesai sebagai 2FA TOTP lewat plugin `twoFactor` bawaan `better-auth` (tanpa dependensi baru, tanpa kode QR: kunci ditampilkan sebagai teks bersama tautan otpauth) dengan kode cadangan sekali pakai, langkah kedua di halaman login dan di dialog sign-in ulang brankas, kartu di Settings (aktifkan, matikan, kode cadangan baru, semuanya dengan kata sandi), peringatan di brankas selama 2FA mati, dan skrip pemulihan `disable-owner-two-factor`; migrasi `20261101010000_add_two_factor`. Butir 3 (sesi lebih pendek) dicakup oleh verifikasi 15 menit dan tidak dibuat terpisah. Butir 4 selesai dengan penyederhanaan: kolom `username`, `url`, dan `tags` ditambahkan; `category` dipakai sebagai tipe dan `description` sebagai catatan, tanpa kolom baru; keunikan menjadi `[userId, key, username]` (username kosong bila tidak ada akun) sehingga Prisma tetap mengelola skemanya tanpa indeks parsial manual; migrasi `20261101020000_secret_v2`. Butir 6 selesai: impor CSV Chrome, Edge, Firefox, Bitwarden, 1Password, dan LastPass, dibaca di browser, dengan pratinjau (dry run di API), deduplikasi, dan audit hanya jumlah. Butir 7 dan 8 selesai; uji pemulihan penuh ke database kosong dan rotasi kunci terhadap database sungguhan belum dilakukan (hanya diuji dengan mock). Jangan memasukkan password asli sebelum migrasi dijalankan dan 2FA aktif.
 
 Ini fase paling berisiko karena menyimpan data paling sensitif. Urutannya sengaja mengamankan akses dulu, baru mengisi data.
 
@@ -170,12 +176,28 @@ Ini fase paling berisiko karena menyimpan data paling sensitif. Urutannya sengaj
 
 ### Fase D: Daftar periksa keamanan per proyek (S)
 
+**Status 2026-11-01: kode selesai dan teruji; tabelnya belum dibuat di database.** Model `ChecklistItem` dan migrasi `20261101000000_add_checklist` (dibuat offline dengan `prisma migrate diff`, belum dijalankan; menunggu persetujuan pemilik). API `/checklist` (daftar, tambah, ubah, hapus, enam item rekomendasi). Tab Checklist di Security (`?tab=checklist`) dan widget dashboard Needs Attention yang menggabungkan item terlambat atau jatuh tempo dalam 14 hari dengan situs offline dan SSL kedaluwarsa. Item bebas (judul, catatan, tanggal, interval ulang), bukan kolom tetap per jenis cek. Butir 3 tersedia di API dan form (pilih secret), belum diuji di browser.
+
 1. Item per proyek: 2FA aktif, tanggal terakhir rotasi key, tanggal domain kedaluwarsa, backup ada, dan sejenisnya. Bisa dicentang dan diberi tanggal.
 2. Masa berlaku SSL dicek otomatis (sudah ada di Monitoring, dipindah).
 3. Tautan ke brankas: item yang merujuk secret tertentu.
 4. Widget dashboard: "yang perlu perhatian" (SSL hampir habis, rotasi terlambat).
 
 ### Fase E: Performa dan Core Web Vitals (dari Fase 5 lama) (S-B)
+
+**Status 2026-11-01: butir 0 sampai 5 dan 8 dikerjakan; butir 6 sebagian; butir 7 belum.**
+
+| Butir | Hasil |
+|---|---|
+| 0 | `e2e/app-pages.spec.ts` ditulis (31 tes, dilewati tanpa `E2E_EMAIL` dan `E2E_PASSWORD`); belum pernah dijalankan dengan akun |
+| 1 | Skrip tema di `<head>` (`lib/theme-script.ts`); `next-themes` tidak dipakai |
+| 2 | Preload font dinyalakan |
+| 3 | Cache sesi 30 detik di `AuthGuard`. `session.cookieCache` di better-auth sengaja tidak dinyalakan: dampaknya tidak bisa diverifikasi tanpa database, dan cache API sudah memangkas biaya utama. Masuk daftar Fase H |
+| 4 | `next/image` untuk avatar GitHub di Developer; avatar Topbar tetap `img` karena hostnya bisa apa saja |
+| 5 | Jumlah skeleton widget mengikuti `DEFAULT_WIDGET_COUNT` |
+| 6 | Hanya `/reset-password` yang dipindah ke Server Component (formnya sudah ada di HTML pertama); halaman lain belum, karena belum ada baseline halaman login |
+| 7 | Belum dievaluasi |
+| 8 | Diukur ulang dengan skrip yang sama (baseline.md bagian 4): `/reset-password` LCP 2180 ke 692 ms, `/login` LCP 820 ke 696 ms |
 
 Dikerjakan setelah modul dirapikan, supaya tidak mengoptimalkan kode yang dibuang.
 
@@ -190,6 +212,8 @@ Dikerjakan setelah modul dirapikan, supaya tidak mengoptimalkan kode yang dibuan
 8. Ukur ulang dengan skrip yang sama (lihat `docs/plans/baseline.md` bagian 4). `/reset-password` LCP 2080 ms masih dekat batas.
 
 ### Fase F: Penguatan dan CI (dari Fase 6 lama) (S)
+
+**Status 2026-11-01: butir 1 sampai 4, 6, 8 (sebagian), dan 9 dikerjakan; butir 5 dan 7 belum.** Butir 2: berkas workflow ditulis, belum pernah berjalan di GitHub. Butir 3: penjaga di `host-guard.ts` memblokir rentang privat saat koneksi dibuka, mengikuti redirect per lompatan (maksimal 3), dan menolak bentuk IPv6 yang membungkus IPv4; perilaku DNS di Render belum diuji. Butir 4: tautan reset tidak lagi dicetak saat produksi; skrip `reset-owner-password` ada. Butir 8: satu spec kepemilikan data terparametrisasi untuk service yang memegang data pengguna; soft delete dan pagination belum tercakup. Butir 9: listener galat dan batas percobaan ditambahkan, Redis tetap dipakai readiness. Sisa peringatan lint: API 17, web 6.
 
 1. Konfigurasi ESLint untuk `apps/api` (konfigurasi minimal dibuat di Fase S butir 8; di sini aturan dirapikan dan temuannya dikurangi) dan kurangi `any` yang tersisa. Status 2026-10-30: error lint web sudah 0 (termasuk semua `any`); yang tersisa 23 peringatan `any` di API dan 8 peringatan di web.
 2. CI (GitHub Actions gratis): lint, type-check, test, build; test browser opsional. (review 10-30) Repo belum punya folder `.github/` sama sekali; tanpa CI, test hanya berjalan bila dijalankan manual.
@@ -211,7 +235,31 @@ Jawaban atas keinginan "login lalu tersimpan di sini". Hanya dikerjakan setelah 
 
 ### Fase H: Verifikasi akhir (dari Fase 7 lama) (K)
 
-Jalankan ulang seluruh baseline, bandingkan, dan susun laporan: yang diperbaiki, yang belum, yang tidak bisa diverifikasi. Perbarui bagian "terkonfirmasi" dan "[verifikasi]" di AGENTS.md.
+Jalankan ulang seluruh baseline, bandingkan, dan susun laporan: yang diperbaiki, yang belum, yang tidak bisa diverifikasi. Perbarui bagian terkonfirmasi dan [verifikasi] di AGENTS.md.
+
+Permintaan pemilik 2026-11-01: verifikasi lebih lanjut atas semua fase yang sudah dikerjakan dilakukan di akhir. Daftar yang belum pernah diuji terhadap sistem sungguhan:
+
+| Fase | Belum terverifikasi |
+|---|---|
+| P | Rewrite Vercel meneruskan cookie dan X-Forwarded-For; batas waktu proxy Vercel saat Render bangun; Bun tersedia di build Render dan Vercel; pooler Supabase untuk fungsi Vercel; nilai TRUST_PROXY_HOPS di Render; ketentuan terbaru paket gratis Render, Vercel, Supabase |
+| B | Impor dengan file ekspor bookmark asli dari Chrome, Edge, dan Firefox pemilik |
+| C | Sudah diuji dengan better-auth sungguhan dan penyimpanan memori (`two-factor.flow.test.ts`): sign-in ulang menghasilkan sesi baru dengan `createdAt` lebih baru, dan alur 2FA (aktifkan, langkah kedua, kode cadangan sekali pakai, matikan). Belum: ketiga migrasi dijalankan pada salinan database lalu alur yang sama dengan Postgres dan aplikasi authenticator sungguhan; kunci TOTP diterima aplikasi authenticator nyata; pemulihan cadangan (termasuk berkas versi 1) ke database kosong; rotasi kunci pada salinan database (DRY_RUN lalu sungguhan); impor dengan ekspor CSV asli dari Chrome dan Bitwarden milik pemilik; `disable-owner-two-factor` terhadap database sungguhan |
+| A, D, E | Halaman di balik login di browser: axe, navigasi keyboard, reflow 320 px, zoom 200%; jalankan `e2e/app-pages.spec.ts` dengan `E2E_EMAIL` dan `E2E_PASSWORD`, lalu uji manual keyboard dan zoom |
+| D | Migrasi checklist dijalankan, lalu alur checklist dan widget Needs Attention dicoba di browser dengan data nyata |
+| E | Keputusan `session.cookieCache` (ukur latensi sesi sebelum dan sesudah di deploy); LCP dan CLS di data lapangan Speed Insights; evaluasi `next build --webpack` |
+| F | Eksekusi pertama workflow CI di GitHub; pemblokiran alamat privat terhadap DNS sungguhan dari Render (nama publik yang mengarah ke IP privat, redirect ke metadata cloud); skrip reset password terhadap database produksi |
+| Integrasi | Token GitHub dan Vercel sungguhan, scope token minimal, bentuk respons Vercel v6 |
+| Umum | Build dari commit bersih (belum; type-check per commit sudah, lihat di bawah) |
+
+Hasil verifikasi 2026-11-01 (otomatis, tanpa database):
+
+| Cek | Hasil |
+|---|---|
+| `type-check`, `lint`, `test`, `build` dari root | hijau; API 266 test, web 461 test; lint 0 error |
+| Type-check per commit | 9 commit yang direncanakan, masing-masing dibangun di atas HEAD pada salinan sementara: web dan API 0 galat di setiap tahap |
+| Test browser halaman publik | 28 lulus, 31 test halaman di balik login dilewati (butuh akun) |
+| `bun audit` | **72 temuan (3 kritis, 37 tinggi, 25 sedang, 7 rendah)**, naik dari 38 tanpa kritis pada 2026-10-14 karena advisory baru. Kritis: Next.js 16.3.8 (dua advisory RCE, rentang rentan sampai 16.4.0; versi 16.4.1 dan seterusnya tersedia) dan better-auth 1.7.1 (OAuth state dapat dipakai sebagai magic link, rentan di bawah 1.7.7; versi 1.7.15 tersedia). Aplikasi ini tidak memakai OAuth, jadi dampak better-auth kemungkinan kecil, tetapi belum diverifikasi. Perbaikan butuh persetujuan: naikkan `next` dan `eslint-config-next` bersama, dan perbarui better-auth |
+| Verifikasi dengan database | **Tertahan**: koneksi ke Postgres Supabase ditolak dengan galat allow list jaringan (`address not in tenant allow_list`); alamat IP mesin ini belum diizinkan di Network Restrictions. Tidak ada Docker atau Postgres lokal sebagai pengganti |
 
 ## Ringkasan urutan
 
@@ -234,11 +282,10 @@ B dan C bisa digarap berurutan tanpa saling menunggu setelah A. E sebaiknya sesu
 
 | Keputusan | Menahan | Lokasi |
 |---|---|---|
-| Hapus permanen secret atau tunggu Fase C | Fase S butir 9 | Fase S |
 | `docs/` dilacak git atau tidak | Fase S butir 10 | Fase S |
 | Platform deploy | **Diputuskan 2026-10-31: web di Vercel, API di Render.** Render Free tidur saat sepi; ping berkala atau platform lain masih dipertimbangkan (GitHub Student Pack tidak bisa dipakai) | Fase P butir 1 |
-| Proxy lewat Next atau subdomain dengan cookie lintas subdomain | Fase P | Fase P butir 2 |
-| Brankas sisi server + 2FA atau zero-knowledge | Fase C | Fase C |
+| Proxy lewat Next atau subdomain dengan cookie lintas subdomain | **Diputuskan 2026-11-01: proxy lewat Next** (tidak ada domain sendiri; ADR-006) | Fase P butir 2 |
+| Brankas sisi server + 2FA atau zero-knowledge | **Dipilih agen 2026-11-01: sisi server + 2FA + sign-in ulang; belum ditinjau pemilik.** Zero-knowledge dinilai ulang setelah brankas dipakai | Fase C |
 | Satukan `workspace/notes` dan `knowledge/notes`, atau beri pembeda | Fase A butir 9 | Fase A |
 | Hapus model `Widget` (migrasi) | Fase A butir 9 | Fase A |
 | Pertahankan atau buang widget Pomodoro | Fase A butir 9 | Fase A |

@@ -8,10 +8,11 @@ PostgreSQL (Supabase free tier in practice) accessed through Prisma 7 with `@pri
 
 | Area | Model | Used by | Key fields and rules |
 |---|---|---|---|
-| Auth | `User` (`user`) | Better Auth, all modules | `email` unique, `avatarUrl`, `timezone` (default Asia/Jakarta) |
+| Auth | `User` (`user`) | Better Auth, all modules | `email` unique, `avatarUrl`, `timezone` (default Asia/Jakarta), `twoFactorEnabled` (set by the twoFactor plugin) |
 | Auth | `Session` (`session`) | Better Auth | `token` unique, `expiresAt`; 7-day sessions |
 | Auth | `Account` (`account`) | Better Auth | Holds the password hash for email sign-in; unique `[providerId, accountId]` |
 | Auth | `Verification` (`verification`) | Better Auth | Password reset tokens |
+| Auth | `TwoFactor` (`twoFactor`) | Better Auth twoFactor plugin | `secret` and `backupCodes`, both encrypted by the plugin; `verified`, failed attempt counter, `lockedUntil`; deleted with the user |
 | Settings | `UserSettings` | API `settings` module only | theme, density, accentColor, sidebarOpen. **Not used by the web app**, which keeps these in localStorage |
 | Dashboard | `Widget`, enum `WidgetSize` | Nothing | Unused: the widget layout lives in localStorage. Removing it needs a migration (open decision) |
 | Workspace | `Todo`, enum `Priority` | `/workspace/todos` | priority LOW to URGENT, completed, dueDate, tags |
@@ -20,7 +21,8 @@ PostgreSQL (Supabase free tier in practice) accessed through Prisma 7 with `@pri
 | Knowledge | `Snippet` | `/knowledge/snippets` | language, content, tags, pinned |
 | Knowledge | `AiPrompt` | `/ai/prompts` | category, tags, variables (JSON), pinned, usageCount |
 | Projects | `Project`, enum `ProjectStatus` | `/projects` | status ACTIVE, PAUSED, ARCHIVED; repoUrl, deployUrl (checked by Infrastructure), techStack, tags |
-| Security | `Secret` | `/secrets` | `value` encrypted; unique `[userId, key]` |
+| Security | `Secret` | `/secrets` | `value` encrypted; `username` (empty string when none), `url`, `tags`; `category` is the type and `description` the notes; unique `[userId, key, username]` |
+| Security | `ChecklistItem` | `/checklist` | title, note, done, doneAt, dueAt, repeatDays; belongs to a `Project` (cascade) and optionally links a `Secret` (set null on delete); indexes `[userId, projectId]` and `[userId, done, dueAt]` |
 | Security | `AuditLog` | `AuditService`, `/audit-log` | action, resource, resourceId, metadata (JSON). Append-only |
 | Integrations | `Integration` | `/integrations` | provider (github, vercel), `accessToken` encrypted, metadata (accountLogin, teamId), enabled; unique `[userId, provider]` |
 
@@ -40,6 +42,8 @@ PostgreSQL (Supabase free tier in practice) accessed through Prisma 7 with `@pri
 - The key is `ENCRYPTION_KEY`, exactly 32 bytes. Losing or changing it makes every stored value unreadable; back it up outside the repository.
 - Code before 2026-10 cut longer keys to their first 32 characters; existing data was written with that cut key.
 - A database leak alone does not expose values; a leak of the database together with the key does. Client-side encryption is an open decision for Fase C.
+- To change the key, run `bun run --cwd apps/api rotate-key` with the old and new key in the environment (see backend.md, Key rotation), then set `ENCRYPTION_KEY` to the new key everywhere the API runs. Take a database backup first; a decryption failure aborts before any write, but a successful rotation cannot be undone without the old key.
+- The vault backup file (backend.md, Secrets) is encrypted with a passphrase, not with `ENCRYPTION_KEY`, and is the way to move secrets to a database that uses another key.
 
 ## 4. Migrations
 
@@ -51,15 +55,13 @@ PostgreSQL (Supabase free tier in practice) accessed through Prisma 7 with `@pri
 | Inspect data | `bunx prisma studio` |
 
 - The Prisma CLI reads `DATABASE_URL` from the root `.env` (`prisma.config.ts`). On Supabase use the session pooler (port 5432) for migrations; the transaction pooler (6543) does not support them.
-- One migration exists: `prisma/migrations/0_init`. Never edit an applied migration; add a new one.
-- Migrations change shared data: the owner approves and runs them. No deployment step runs them automatically yet (ROADMAP Fase P).
+- Four migrations exist: `0_init`, `20261101000000_add_checklist` (creates `ChecklistItem`), `20261101010000_add_two_factor` (creates `twoFactor` and adds `user.twoFactorEnabled`), and `20261101020000_secret_v2` (adds `username`, `url`, `tags` to `Secret` and replaces the unique index with `[userId, key, username]`; existing rows get an empty username). The last three were generated offline with `prisma migrate diff` and have not been applied to any database yet; until they are, `/checklist`, two-factor sign-in, and the vault fail with database errors. They can be applied together with `bunx prisma migrate deploy`. Never edit an applied migration; add a new one.
+- Migrations change shared data: the owner approves and runs them. No deployment step runs them automatically; see docs/deployment.md.
 
 ## 5. Known issues
 
 | Issue | Plan |
 |---|---|
-| A soft-deleted secret still blocks a new secret with the same key | ROADMAP Fase S item 9, or a partial unique index in Fase C |
-| Vault model has no url, username, or type, so two logins for one site collide | ROADMAP Fase C item 4 |
 | `Widget` unused; `UserSettings` unused by the web app | Decision pending |
 | Workspace and Knowledge notes share one table without a type field | Decision pending (ROADMAP Fase A item 9) |
 

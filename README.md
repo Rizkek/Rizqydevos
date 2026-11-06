@@ -8,15 +8,15 @@ DevOS keeps links, knowledge (snippets, notes, prompts), passwords and secrets w
 
 | Module | Purpose | Status |
 |---|---|---|
-| Dashboard | Today at a glance: tasks, scratchpad, GitHub activity, deployments, snippets | Working |
+| Dashboard | Today at a glance: needs attention, tasks, scratchpad, GitHub activity, deployments, snippets | Working |
 | Projects | Repository, deploy URL, stack, status | Working |
 | Workspace | Todos and scratchpad | Working |
 | Knowledge | Snippets and prompts (notes editor without an entry point yet) | Working |
 | Developer | GitHub activity, open pull requests, repositories | Working |
 | Infrastructure | Vercel deployments, uptime and SSL expiry of project deploy URLs | Working |
-| Security | Encrypted secret vault and audit log; per-project checklist planned | Working, hardening planned |
+| Security | Encrypted secret vault with password re-check, encrypted backup and restore, audit log, per-project checklist with due dates, two-factor sign-in (authenticator app), import from password manager CSV | Working, hardening in progress |
 | Settings | Profile, appearance, GitHub and Vercel tokens | Working |
-| Links | Bookmarks with tags, import and export | Planned (backend ready) |
+| Links | Bookmarks with tags and search, import from browser export, HTML and JSON export, link check, bookmarklet | Working |
 
 Full description and business flows: [docs/product/overview.md](./docs/product/overview.md).
 
@@ -33,7 +33,7 @@ Full description and business flows: [docs/product/overview.md](./docs/product/o
 | Data | PostgreSQL (Supabase) with Prisma 7; Redis for readiness |
 | Security | AES-256-GCM for secrets and integration tokens, audit log |
 | Tests | Vitest, Testing Library, Playwright with axe |
-| Deployment | Planned: web on Vercel, API on Render (ROADMAP Fase P). Not deployed yet |
+| Deployment | Web on Vercel, API on Render, `/api/v1` proxied through Next.js ([docs/deployment.md](./docs/deployment.md)). Not deployed yet |
 
 Architecture: [docs/architecture/overview.md](./docs/architecture/overview.md).
 
@@ -64,7 +64,7 @@ Create three env files. `.env.example` (local, not tracked) lists every variable
 | File | Read by | Main variables |
 |---|---|---|
 | `apps/api/.env` | API | `APP_URL`, `DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY` |
-| `apps/web/.env` | Web | `DATABASE_URL`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `NEXT_PUBLIC_API_URL` |
+| `apps/web/.env` | Web | `DATABASE_URL`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `API_URL` (default `http://localhost:3001`) |
 | `.env` (root) | Prisma CLI | `DATABASE_URL` (session pooler, port 5432 on Supabase) |
 
 GitHub and Vercel tokens are not environment variables: add them in Settings after signing in.
@@ -86,6 +86,24 @@ $env:OWNER_EMAIL = "you@example.com"; $env:OWNER_PASSWORD = "<password>"; bun ru
 OWNER_EMAIL=you@example.com OWNER_PASSWORD='<password>' bun run --cwd apps/web create-owner
 ```
 
+## Signing in
+
+There is no default account or password. The only account is the one created with the command above:
+
+| Item | Value |
+|---|---|
+| Address | The `OWNER_EMAIL` used when creating the account. No other address can register |
+| Password | The `OWNER_PASSWORD` used then, 8 to 128 characters. Only a hash is stored, so it cannot be looked up |
+| Display name | `OWNER_NAME`, default Owner |
+
+Open `http://localhost:3000` and sign in at `/login`. Running the command again with the same address fails with User already exists and does not change the password.
+
+Forgot the password in development: choose Forgot password? on the sign-in page. No email is sent; the reset link is printed in the log of the web app (the terminal running `bun run dev`). Open that link and choose a new password.
+
+Lost the authenticator app and the backup codes: run `OWNER_EMAIL=... bun run --cwd apps/web disable-owner-two-factor` against the database. It turns two-factor sign-in off and signs out every device; turn it on again in Settings.
+
+Forgot the password in production: the link is not logged there. Run `OWNER_EMAIL=... NEW_PASSWORD=... bun run --cwd apps/web reset-owner-password` against the production database (`DATABASE_URL` set). The new password is 8 to 128 characters, and every signed-in device is signed out.
+
 ## Scripts (from the root)
 
 | Command | What it does |
@@ -95,7 +113,11 @@ OWNER_EMAIL=you@example.com OWNER_PASSWORD='<password>' bun run --cwd apps/web c
 | `bun run type-check` | TypeScript in every workspace |
 | `bun run lint` | ESLint in web and api |
 | `bun run test` | Vitest in web and api |
-| `bun run --cwd apps/web test:e2e` | Playwright browser tests (after `bun run build`) |
+| `bun run --cwd apps/web test:e2e` | Playwright browser tests (after `bun run build`); pages behind sign-in run only when `E2E_EMAIL` and `E2E_PASSWORD` are set |
+| `bun run --cwd apps/web create-owner` | Creates the owner account (needs `OWNER_EMAIL`, `OWNER_PASSWORD`) |
+| `bun run --cwd apps/web reset-owner-password` | Sets a new owner password (needs `OWNER_EMAIL`, `NEW_PASSWORD`) |
+| `bun run --cwd apps/web disable-owner-two-factor` | Turns off two-factor sign-in when the authenticator and backup codes are lost (needs `OWNER_EMAIL`) |
+| `bun run --cwd apps/api rotate-key` | Re-encrypts stored secrets and tokens after an `ENCRYPTION_KEY` change |
 
 ---
 
